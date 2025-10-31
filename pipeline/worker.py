@@ -49,6 +49,7 @@ class Worker(threading.Thread):
                 continue
 
             self.current_task = task
+            result: Union[FileTask, FinalizeTask]
             try:
                 if isinstance(task, FinalizeTask):
                     # Call finalize if processor supports it

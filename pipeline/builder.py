@@ -1,8 +1,10 @@
 import importlib
 import logging
 import queue
-from typing import Dict, Any, List, Tuple
+from queue import Queue
+from typing import Dict, Any, List, Tuple, Union
 
+from tasks import FileTask, FinalizeTask
 from tasks.registry import TaskRegistry
 from tasks.task_item import TaskProcessor
 from .config import PipelineConfig
@@ -57,7 +59,7 @@ class PipelineBuilder:
             ValueError: If configuration is invalid
         """
         # Create queues: one per task + one final output queue
-        queues = [queue.Queue() for _ in range(len(self.config.tasks) + 1)]
+        queues: List[Queue[Union[FileTask, FinalizeTask]]] = [queue.Queue() for _ in range(len(self.config.tasks) + 1)]
         workers = []
 
         for i, task_cfg in enumerate(self.config.tasks):

@@ -143,7 +143,7 @@ class NvidiaOCRProvider(OCRProvider):
                 z.extractall(extract_dir)
 
             response_files = list(extract_dir.glob("*.response"))
-            ocr_boxes = []
+            ocr_boxes: List[OCRBox] = []
 
             if not response_files:
                 logger.warning(f"No .response file found in OCR output for asset {asset_id}")
