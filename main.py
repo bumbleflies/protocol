@@ -93,7 +93,18 @@ def _run_pipeline(builder: PipelineBuilder, config, files: list) -> None:
         q.join()
         logging.debug(f"Queue {i} drained")
 
-    # Process final output queue to log StatusTask
+    # Stop all workers and wait for completion
+    for w in workers:
+        w.stop()
+
+    # Stop monitor and wait for it to finish
+    monitor.stop()
+    monitor.join(timeout=5)  # Wait up to 5 seconds for monitor to finish
+
+    # Delay to ensure Rich Live display fully exits before status messages
+    time.sleep(0.5)
+
+    # Process final output queue to log StatusTask (AFTER monitor stops)
     final_queue = queues[-1]
     from tasks import StatusTask
 
@@ -105,21 +116,10 @@ def _run_pipeline(builder: PipelineBuilder, config, files: list) -> None:
                 for message in item.messages:
                     logging.info(message)
                 if item.output_file:
-                    logging.info(f"Pipeline completed. Processed {item.files_processed} file(s).")
+                    logging.debug(f"Pipeline completed. Processed {item.files_processed} file(s).")
             final_queue.task_done()
         except Exception:
             break
-
-    # Stop all workers and wait for completion
-    for w in workers:
-        w.stop()
-
-    # Stop monitor and wait for it to finish
-    monitor.stop()
-    monitor.join(timeout=5)  # Wait up to 5 seconds for monitor to finish
-
-    # Delay to ensure Rich Live display fully exits before status messages
-    time.sleep(0.5)
 
 
 def main_with_config(config_path: str, args) -> None:
