@@ -51,8 +51,8 @@ jobs:
         path: test-results-*.xml
 
     - name: Publish test results
-      uses: EnricoMi/publish-unit-test-result-action/composite@v2
-      if: always() && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always() && runner.os == 'Linux' && matrix.python-version == '3.13'
       with:
         files: test-results-*.xml
         check_name: Test Results (Python ${{ matrix.python-version }})
