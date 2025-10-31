@@ -4,8 +4,9 @@ from typing import List
 
 import cv2
 from PIL import Image
-from PyPDF2 import PdfReader, PdfWriter
-from PyPDF2.generic import RectangleObject, AnnotationBuilder
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import RectangleObject
+from pypdf.annotations import Text
 
 from .task_item import FileTask, FinalizableTaskProcessor
 from .registry import TaskRegistry
@@ -71,7 +72,7 @@ class PDFSaveTask(FinalizableTaskProcessor):
             logger.warning("No valid images found to save in PDF.")
             return
 
-        # Add annotations with PyPDF2
+        # Add annotations with pypdf
         self._add_annotations(temp_pdf_path, self.output_path, sorted_tasks)
         temp_pdf_path.unlink(missing_ok=True)
         logger.info(f"Annotated PDF saved to {self.output_path}")
@@ -115,13 +116,14 @@ class PDFSaveTask(FinalizableTaskProcessor):
                 try:
                     logger.debug(f'Adding annotation {box}')
                     # Add static text annotation
+                    annotation = Text(
+                        rect=rect,
+                        text=box.label or "",
+                        open=False,  # collapsed by default
+                    )
                     writer.add_annotation(
                         page_number=page_idx,
-                        annotation=AnnotationBuilder.text(
-                            rect=rect,
-                            text=box.label or "",
-                            open=False,  # collapsed by default
-                        )
+                        annotation=annotation
                     )
 
                 except Exception as e:

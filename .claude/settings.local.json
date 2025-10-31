@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pytest:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(mkdir:*)",
+      "Bash(python:*)",
+      "Bash(python -c \"import yaml; yaml.safe_load(open(''.github/workflows/ci.yml'')); print(''CI workflow YAML is valid'')\")",
+      "Bash(python -c \"import yaml; yaml.safe_load(open(''.github/workflows/release.yml'')); print(''Release workflow YAML is valid'')\")",
+      "Bash(python -c \"import yaml; yaml.safe_load(open(''.github/workflows/codeql.yml'')); print(''CodeQL workflow YAML is valid'')\")",
+      "Bash(python -c \"import yaml; yaml.safe_load(open(''.github/workflows/dependency-review.yml'')); print(''Dependency review workflow YAML is valid'')\")",
+      "Bash(python -m pip uninstall:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
