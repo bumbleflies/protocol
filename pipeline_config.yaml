@@ -6,8 +6,10 @@ tasks:
   - name: optimize
     task_type: image_optimization  # Registry name
     params:
-      padding: 10
-      min_crop_ratio: 0.8
+      target_width: 1920                    # Output resolution (maintains aspect ratio)
+      min_area_ratio: 0.10                  # Flipchart must be at least 10% of image
+      max_area_ratio: 0.95                  # Avoid detecting entire image
+      enable_perspective_correction: true   # Enable for angled shots
 
   - name: upload
     task_type: upload  # Registry name

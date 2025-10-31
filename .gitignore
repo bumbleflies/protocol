@@ -220,3 +220,17 @@ debug.log
 .github/workflows/*.log
 
 .claude/
+samples/debug/1_gray_image.png
+samples/debug/1_gray_image1.png
+samples/debug/2_edges_image.png
+samples/debug/2_edges_image1.png
+samples/debug/3_closed_image.png
+samples/debug/3_closed_image1.png
+samples/debug/4_contours_image.png
+samples/debug/4_contours_image1.png
+samples/validation/input_perspective.png
+samples/validation/input_straight_on.png
+samples/validation/output_perspective.png
+samples/validation/output_straight_on.png
+samples/validation/real_image.png
+samples/validation/real_image1.png

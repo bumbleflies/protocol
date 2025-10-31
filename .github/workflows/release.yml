@@ -1,5 +1,8 @@
 name: Release
 
+# NOTE: This workflow is now triggered by tags created by semantic-release workflow
+# The semantic-release.yml workflow on main branch creates tags automatically
+# This workflow handles additional build and publish steps for those tags
 on:
   push:
     tags:

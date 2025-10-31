@@ -60,11 +60,16 @@ processing, annotation, and archival of flipchart content.
    pip install -r requirements.txt
    ```
 
-3. Create a `.env` file with your NVIDIA API key:
+3. Create a `.env` file with your NVIDIA API key (optional for OCR):
 
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your NVIDIA API key
    ```
-   NVIDIA_API_KEY=your_api_key_here
-   ```
+
+   Get your API key from: https://build.nvidia.com/explore/discover
+
+   **Note:** If no API key is provided, the pipeline will automatically skip OCR and just combine images into a PDF.
 
 ---
 
@@ -83,6 +88,8 @@ python main.py -i /path/to/images -e .jpg -o output.pdf
 | `-i`, `--input`     | Input directory containing images | `.` (current directory)        |
 | `-e`, `--extension` | File extension to process         | `.jpg`                         |
 | `-o`, `--output`    | Output PDF filename               | `combined-YYYYMMDD-HHMMSS.pdf` |
+| `--no-ocr`          | Skip OCR step (images only)       | `False`                        |
+| `--config`          | Path to YAML configuration file   | `pipeline_config.yaml`         |
 
 ---
 
@@ -155,6 +162,7 @@ python main.py --config pipeline_config.yaml
 - [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) - Complete refactoring details
 - [CLAUDE.md](CLAUDE.md) - Architecture documentation
 - [TEST_RESULTS.md](TEST_RESULTS.md) - Test coverage and results
+- [SEMANTIC_RELEASE.md](SEMANTIC_RELEASE.md) - Automated versioning and releases
 - [tests/README.md](tests/README.md) - Testing guide
 
 **Running tests:**
@@ -163,6 +171,15 @@ pip install -r requirements.txt
 pip install -r test_requirements.txt
 pytest tests/ -v
 ```
+
+**Releases:**
+This project uses [Python Semantic Release](https://python-semantic-release.readthedocs.io/) for automated versioning.
+Use [Conventional Commits](https://www.conventionalcommits.org/) for automatic version bumps:
+- `feat:` → Minor version bump (0.x.0)
+- `fix:` → Patch version bump (0.0.x)
+- `feat!:` or `BREAKING CHANGE:` → Major version bump (x.0.0)
+
+See [SEMANTIC_RELEASE.md](SEMANTIC_RELEASE.md) for detailed instructions.
 
 ---
 

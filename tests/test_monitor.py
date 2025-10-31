@@ -272,13 +272,13 @@ class TestWorkflowMonitor:
         # Should show queue size 5
         assert table is not None
 
-    def test_daemon_thread(self):
-        """Test monitor thread is created as daemon."""
+    def test_non_daemon_thread(self):
+        """Test monitor thread is created as non-daemon for proper cleanup."""
         worker = Worker(
             name="test_worker", input_q=queue.Queue(), output_q=queue.Queue(), process_fn=MockTaskProcessor()
         )
 
         monitor = WorkflowMonitor(workers=[worker])
 
-        assert monitor.daemon is True
+        assert monitor.daemon is False
         assert monitor.name == "WorkflowMonitor"

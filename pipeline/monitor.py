@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowMonitor(threading.Thread):
     def __init__(self, workers: List[Worker], refresh_interval: float = 0.5) -> None:
-        super().__init__(daemon=True, name="WorkflowMonitor")
+        super().__init__(daemon=False, name="WorkflowMonitor")  # Changed to non-daemon for proper cleanup
         self.workers: List[Worker] = workers
         self.refresh_interval: float = refresh_interval
         self.console: Console = Console()
