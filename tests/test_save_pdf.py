@@ -268,3 +268,54 @@ class TestPDFSaveTask:
 
             # Verify multi-page PDF was created
             assert output_path.exists()
+
+    def test_add_annotations_with_more_pages_than_tasks(self):
+        """Test _add_annotations() handles PDFs with more pages than tasks."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "output.pdf"
+            processor = PDFSaveTask(output_path=str(output_path))
+
+            # Create a single test image with OCR boxes
+            img1 = np.zeros((200, 200, 3), dtype=np.uint8)
+            ocr_boxes1 = [
+                OCRBox(label="Page 1", confidence=0.9, x1=10, y1=10, x2=100, y2=10, x3=100, y3=50, x4=10, y4=50)
+            ]
+            task1 = FileTask(file_path=Path("test1.jpg"), sort_key=1.0, img=img1, ocr_boxes=ocr_boxes1)
+
+            # Process and create initial PDF
+            processor.process(task1)
+            processor.finalize()
+
+            # Now manually create a PDF with more pages than tasks
+            # Read the created PDF and add an extra blank page
+            from pypdf import PdfReader, PdfWriter
+
+            reader = PdfReader(str(output_path))
+            writer = PdfWriter()
+
+            # Add original page
+            writer.add_page(reader.pages[0])
+
+            # Add an extra blank page (more pages than tasks)
+            writer.add_blank_page(width=200, height=200)
+
+            # Save modified PDF with extra page
+            multi_page_path = Path(tmpdir) / "multi_page.pdf"
+            with open(multi_page_path, "wb") as f:
+                writer.write(f)
+
+            # Create a new processor and test _add_annotations with mismatched page count
+            final_output = Path(tmpdir) / "final_output.pdf"
+            processor2 = PDFSaveTask(output_path=str(final_output))
+
+            # Call _add_annotations with 1 task but 2-page PDF
+            # This triggers the edge case: if page_idx >= len(tasks): continue
+            processor2._add_annotations(multi_page_path, final_output, [task1])
+
+            # Verify final PDF was created successfully
+            assert final_output.exists()
+            assert final_output.stat().st_size > 0
+
+            # Verify it has 2 pages (original + blank)
+            final_reader = PdfReader(str(final_output))
+            assert len(final_reader.pages) == 2

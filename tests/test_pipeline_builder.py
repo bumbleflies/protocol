@@ -208,3 +208,88 @@ class TestPipelineBuilder:
 
         with pytest.raises((KeyError, ImportError)):
             builder.build()
+
+    def test_register_provider_overwrites_existing(self, caplog):
+        """Test that registering a provider with the same name logs a warning."""
+        import logging
+
+        task_cfg = TaskConfig(name="test", task_type="simple_test")
+        config = PipelineConfig(tasks=[task_cfg])
+        builder = PipelineBuilder(config)
+
+        # Register provider twice
+        builder.register_provider("test_provider", "first_value")
+
+        with caplog.at_level(logging.WARNING):
+            builder.register_provider("test_provider", "second_value")
+
+        # Should log warning about overwriting
+        assert "already registered" in caplog.text
+        assert "overwriting" in caplog.text.lower()
+        # Second value should be stored
+        assert builder.providers["test_provider"] == "second_value"
+
+    def test_task_instantiation_with_wrong_params_raises_error(self):
+        """Test that task instantiation with wrong parameters raises TypeError."""
+
+        @TaskRegistry.register("strict_task")
+        class StrictTask(TaskProcessor):
+            def __init__(self, required_param: str):
+                self.required_param = required_param
+
+            def process(self, task: FileTask) -> FileTask:
+                return task
+
+        # Try to instantiate without required parameter
+        config = PipelineConfig(
+            tasks=[TaskConfig(name="test", task_type="strict_task", params={"wrong_param": "value"})]
+        )
+
+        builder = PipelineBuilder(config)
+
+        with pytest.raises(TypeError) as exc_info:
+            builder.build()
+
+        assert "Failed to instantiate task" in str(exc_info.value)
+        assert "strict_task" in str(exc_info.value)
+
+    def test_import_task_class_with_invalid_path_raises_error(self):
+        """Test that importing task class with invalid path raises ImportError."""
+
+        # Use a fully qualified class path that doesn't exist
+        config = PipelineConfig(tasks=[TaskConfig(name="test", task_type="nonexistent.module.NonexistentClass")])
+
+        builder = PipelineBuilder(config)
+
+        with pytest.raises(ImportError) as exc_info:
+            builder.build()
+
+        assert "Could not import task class" in str(exc_info.value)
+
+    def test_task_config_with_none_params(self):
+        """Test TaskConfig __post_init__ converts None params to empty dict."""
+        # Create TaskConfig with explicit None params (bypassing dataclass defaults)
+        config = TaskConfig.__new__(TaskConfig)
+        config.name = "test"
+        config.task_type = "test_task"
+        config.params = None
+
+        # Call __post_init__ manually
+        config.__post_init__()
+
+        assert config.params == {}
+
+    def test_import_task_class_with_nonexistent_class_name_raises_error(self):
+        """Test that importing valid module but invalid class name raises ImportError."""
+
+        # Use a valid module path but nonexistent class name
+        # This triggers AttributeError in getattr(module, class_name)
+        config = PipelineConfig(tasks=[TaskConfig(name="test", task_type="tasks.registry.NonexistentClassName")])
+
+        builder = PipelineBuilder(config)
+
+        with pytest.raises(ImportError) as exc_info:
+            builder.build()
+
+        assert "Could not import task class" in str(exc_info.value)
+        assert "NonexistentClassName" in str(exc_info.value)
