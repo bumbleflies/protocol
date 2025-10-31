@@ -1,7 +1,7 @@
 import logging
 import threading
 from queue import Queue, Empty
-from typing import Callable, Optional, Union
+from typing import Optional, Union
 
 from tasks import FileTask, FinalizeTask
 from tasks.task_item import TaskProcessor, FinalizableTaskProcessor
@@ -14,14 +14,14 @@ class Worker(threading.Thread):
         self,
         name: str,
         input_q: Queue[Union[FileTask, FinalizeTask]],
-        output_q: Optional[Queue[FileTask]],
-        process_fn: Union[TaskProcessor, Callable[[Union[FileTask, FinalizeTask]], Union[FileTask, FinalizeTask]]],
+        output_q: Optional[Queue[Union[FileTask, FinalizeTask]]],
+        process_fn: TaskProcessor,
     ) -> None:
         super().__init__(daemon=True, name=name)
         self.name: str = name
         self.input_q: Queue[Union[FileTask, FinalizeTask]] = input_q
-        self.output_q: Optional[Queue[FileTask]] = output_q
-        self.process_fn: Union[TaskProcessor, Callable] = process_fn
+        self.output_q: Optional[Queue[Union[FileTask, FinalizeTask]]] = output_q
+        self.process_fn: TaskProcessor = process_fn
         self.current_task: Optional[Union[FileTask, FinalizeTask]] = None
         self.done_count: int = 0
         self._stop_event: threading.Event = threading.Event()
@@ -50,18 +50,13 @@ class Worker(threading.Thread):
 
             self.current_task = task
             try:
-                # Handle new TaskProcessor interface
-                if isinstance(self.process_fn, TaskProcessor):
-                    if isinstance(task, FinalizeTask):
-                        # Call finalize if processor supports it
-                        if isinstance(self.process_fn, FinalizableTaskProcessor):
-                            self.process_fn.finalize()
-                        result = task  # Pass through FinalizeTask
-                    else:
-                        result = self.process_fn.process(task)
+                if isinstance(task, FinalizeTask):
+                    # Call finalize if processor supports it
+                    if isinstance(self.process_fn, FinalizableTaskProcessor):
+                        self.process_fn.finalize()
+                    result = task  # Pass through FinalizeTask
                 else:
-                    # Backward compatibility: call as Callable
-                    result = self.process_fn(task)
+                    result = self.process_fn.process(task)
 
                 logger.debug(f"Processed task: {task}")
             except Exception as e:

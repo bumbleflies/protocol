@@ -218,3 +218,5 @@ debug.log
 
 # GitHub Actions
 .github/workflows/*.log
+
+.claude/

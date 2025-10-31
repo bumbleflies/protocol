@@ -16,29 +16,25 @@ This is a Python-based flipchart OCR pipeline that processes images of flipchart
 
 ### Running the Pipeline
 
-**Legacy mode** (direct instantiation):
-```bash
-python main.py -i <input_directory> -e <file_extension> -o <output_pdf>
-```
+The pipeline uses YAML configuration files for setup:
 
-**Config mode** (new, recommended):
 ```bash
-python main.py --config pipeline_config.yaml -i <input_directory>
+python main.py [--config pipeline_config.yaml] [options]
 ```
 
 Examples:
 ```bash
-# Legacy: Process all .jpg files in current directory
+# Use default config (pipeline_config.yaml)
 python main.py
 
-# Config-based: Use YAML configuration
-python main.py --config pipeline_config.yaml
+# Use custom config file
+python main.py --config my_config.yaml
 
 # Override config with CLI args
 python main.py --config pipeline_config.yaml -i images/ -o custom.pdf
 
-# Skip OCR with config mode
-python main.py --config pipeline_config.yaml --no-ocr
+# Skip OCR (only combine images to PDF)
+python main.py --no-ocr
 ```
 
 ### Running Tests
@@ -247,8 +243,7 @@ Defined in [main.py](main.py):
 - `-e/--extension`: File extension to process (default: `.jpg`)
 - `-o/--output`: Output PDF filename (default: `combined-YYYYMMDD-HHMMSS.pdf`)
 - `--no-ocr`: Skip upload/OCR stages and just combine images
-- `--config`: Path to YAML configuration file (enables new pipeline mode)
-- `--legacy`: Force legacy mode even with config file
+- `--config`: Path to YAML configuration file (default: `pipeline_config.yaml`)
 
 ### Logging
 
