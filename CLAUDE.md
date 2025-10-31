@@ -44,11 +44,8 @@ python main.py --config pipeline_config.yaml --no-ocr
 ### Running Tests
 
 ```bash
-# Install production dependencies
-pip install -r requirements.txt
-
-# Install test dependencies
-pip install -r test_requirements.txt
+# Install dependencies (production + test + dev tools)
+pip install -e ".[test,dev]"
 
 # Run all tests
 pytest tests/
@@ -61,13 +58,18 @@ pytest tests/ --cov=tasks --cov=pipeline -v
 
 1. Install dependencies:
 ```bash
-pip install -r requirements.txt
+# Install in editable mode with all optional dependencies
+pip install -e ".[test,dev]"
 ```
 
 2. Create `.env` file with:
 ```
 NVIDIA_API_KEY=your_api_key_here
 ```
+
+**Dependency Management**: This project uses `pyproject.toml` (PEP 518/621) as the single source of truth for all dependencies and tool configurations. Optional dependency groups:
+- `[test]`: pytest, pytest-cov, pytest-mock, pytest-asyncio
+- `[dev]`: flake8, black, mypy (code quality tools)
 
 ## Architecture
 
