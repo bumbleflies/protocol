@@ -1,9 +1,10 @@
 import logging
+from typing import Union
 
 import cv2
 
 from .ocr_provider import AssetUploader, OCRProvider
-from .task_item import FileTask, TaskProcessor
+from .task_item import TaskProcessor, StatusTask, FileTask
 from .registry import TaskRegistry
 
 logger = logging.getLogger(__name__)
@@ -25,19 +26,27 @@ class UploadTask(TaskProcessor):
         """
         self.uploader = uploader
 
-    def process(self, task: FileTask) -> FileTask:
+    def process(self, task: Union[FileTask, StatusTask]) -> Union[FileTask, StatusTask]:
         """
-        Process a FileTask by uploading its image.
+        Process a FileTask or StatusTask.
 
         Args:
-            task: The FileTask containing the image to upload
+            task: The FileTask containing the image to upload, or StatusTask to pass through
 
         Returns:
-            The FileTask with asset_id populated
+            The FileTask with asset_id populated, or StatusTask unchanged
 
         Raises:
             Exception: If upload fails
+            TypeError: If task is not FileTask or StatusTask
         """
+        # Pass through StatusTask unchanged
+        if isinstance(task, StatusTask):
+            return task
+
+        if not isinstance(task, FileTask):
+            raise TypeError(f"Expected FileTask or StatusTask, got {type(task).__name__}")
+
         logger.debug(f"Uploading image for task: {task.file_path}")
         try:
             _, img_bytes = cv2.imencode(".jpg", task.img)
@@ -66,20 +75,28 @@ class OCRTask(TaskProcessor):
         """
         self.provider = provider
 
-    def process(self, task: FileTask) -> FileTask:
+    def process(self, task: Union[FileTask, StatusTask]) -> Union[FileTask, StatusTask]:
         """
-        Process a FileTask by performing OCR on its uploaded asset.
+        Process a FileTask or StatusTask.
 
         Args:
-            task: The FileTask with asset_id set
+            task: The FileTask with asset_id set, or StatusTask to pass through
 
         Returns:
-            The FileTask with ocr_boxes populated
+            The FileTask with ocr_boxes populated, or StatusTask unchanged
 
         Raises:
             ValueError: If asset_id is not set
             Exception: If OCR fails
+            TypeError: If task is not FileTask or StatusTask
         """
+        # Pass through StatusTask unchanged
+        if isinstance(task, StatusTask):
+            return task
+
+        if not isinstance(task, FileTask):
+            raise TypeError(f"Expected FileTask or StatusTask, got {type(task).__name__}")
+
         if not hasattr(task, "asset_id") or task.asset_id is None:
             msg = f"Task {task.file_path} has no asset_id; upload must run first"
             logger.error(msg)

@@ -2,7 +2,7 @@ import queue
 import re
 from pathlib import Path
 
-from tasks import FileTask, FinalizeTask
+from tasks import FileTask, FinalizeTask, StatusTask
 
 
 class FileLoader:
@@ -65,5 +65,7 @@ class FileLoader:
             task: FileTask = FileTask(file_path=f, sort_key=sort_key)
             self.target_q.put(task)
 
-        # Push finalize task
+        # Push finalize task and status task
         self.target_q.put(FinalizeTask())
+        # StatusTask will be populated by tasks and logged by the final worker
+        self.target_q.put(StatusTask(files_processed=len(files)))

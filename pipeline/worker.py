@@ -3,7 +3,7 @@ import threading
 from queue import Queue, Empty
 from typing import Optional, Union
 
-from tasks import FileTask, FinalizeTask
+from tasks import FileTask, FinalizeTask, StatusTask
 from tasks.task_item import TaskProcessor, FinalizableTaskProcessor
 
 logger = logging.getLogger(__name__)
@@ -13,16 +13,16 @@ class Worker(threading.Thread):
     def __init__(
         self,
         name: str,
-        input_q: Queue[Union[FileTask, FinalizeTask]],
-        output_q: Optional[Queue[Union[FileTask, FinalizeTask]]],
+        input_q: Queue[Union[FileTask, FinalizeTask, StatusTask]],
+        output_q: Optional[Queue[Union[FileTask, FinalizeTask, StatusTask]]],
         process_fn: TaskProcessor,
     ) -> None:
         super().__init__(daemon=True, name=name)
         self.name: str = name
-        self.input_q: Queue[Union[FileTask, FinalizeTask]] = input_q
-        self.output_q: Optional[Queue[Union[FileTask, FinalizeTask]]] = output_q
+        self.input_q: Queue[Union[FileTask, FinalizeTask, StatusTask]] = input_q
+        self.output_q: Optional[Queue[Union[FileTask, FinalizeTask, StatusTask]]] = output_q
         self.process_fn: TaskProcessor = process_fn
-        self.current_task: Optional[Union[FileTask, FinalizeTask]] = None
+        self.current_task: Optional[Union[FileTask, FinalizeTask, StatusTask]] = None
         self.done_count: int = 0
         self._stop_event: threading.Event = threading.Event()
         self.finalize_done_event: threading.Event = threading.Event()  # signals finalize task done
@@ -43,15 +43,25 @@ class Worker(threading.Thread):
         logger.debug("Worker started")
         while not self._stop_event.is_set():
             try:
-                task: Union[FileTask, FinalizeTask] = self.input_q.get(timeout=0.1)
+                task: Union[FileTask, FinalizeTask, StatusTask] = self.input_q.get(timeout=0.1)
                 logger.debug(f"Got task: {task}")
             except Empty:
                 continue
 
             self.current_task = task
-            result: Union[FileTask, FinalizeTask]
+            result: Union[FileTask, FinalizeTask, StatusTask]
             try:
-                if isinstance(task, FinalizeTask):
+                if isinstance(task, StatusTask):
+                    # Pass StatusTask through processor (some may populate it)
+                    # Then log it if this is the last worker
+                    result = self.process_fn.process(task) if hasattr(self.process_fn, "process") else task
+                    if not self.output_q:
+                        # This is the last worker - log the status
+                        for message in task.messages:
+                            logger.info(message)
+                        if task.output_file:
+                            logger.info(f"Pipeline completed. Processed {task.files_processed} file(s).")
+                elif isinstance(task, FinalizeTask):
                     # Call finalize if processor supports it
                     if isinstance(self.process_fn, FinalizableTaskProcessor):
                         self.process_fn.finalize()

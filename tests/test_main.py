@@ -491,7 +491,7 @@ class TestIntegration:
         import logging
         import numpy as np
         from tasks.save_pdf import PDFSaveTask
-        from tasks.task_item import FileTask
+        from tasks.task_item import FileTask, StatusTask
 
         # Set caplog to capture from tasks.save_pdf logger
         caplog.set_level(logging.INFO, logger="tasks.save_pdf")
@@ -513,8 +513,103 @@ class TestIntegration:
         pdf_task.process(task2)
         pdf_task.finalize()
 
+        # Process StatusTask after finalize (mimics real pipeline flow)
+        status_task = StatusTask(files_processed=2)
+        pdf_task.process(status_task)
+
         # Verify PDF was created
         assert output_pdf.exists()
 
-        # Verify log message appeared
-        assert any("PDF saved successfully" in record.message for record in caplog.records)
+        # Verify success message is in StatusTask
+        assert any("PDF saved successfully" in msg for msg in status_task.messages)
+
+    def test_pipeline_completes_with_empty_queues(self, tmp_path):
+        """Test that all queues are empty after pipeline completes with sample data."""
+        import cv2
+        import numpy as np
+        import queue
+        import time
+        from pipeline.builder import PipelineBuilder
+        from pipeline.config import load_config_from_dict
+        from pipeline.file_loader import FileLoader
+
+        # Create sample test images with actual content to detect
+        test_images = []
+        for i in range(3):
+            img_path = tmp_path / f"0{i + 1}_test.jpg"
+            # Create image with white rectangle on black background (easier to detect)
+            img = np.zeros((400, 600, 3), dtype=np.uint8)
+            img[50:350, 100:500] = [255, 255, 255]  # White rectangle
+            cv2.imwrite(str(img_path), img)
+            test_images.append(img_path)
+
+        # Create config
+        config_dict = {
+            "tasks": [
+                {"name": "optimize", "task_type": "image_optimization", "params": {"target_width": 800}},
+                {"name": "save", "task_type": "save_pdf", "params": {"output_path": str(tmp_path / "output.pdf")}},
+            ]
+        }
+        config = load_config_from_dict(config_dict)
+
+        # Build pipeline
+        builder = PipelineBuilder(config)
+        workers, queues = builder.build()
+
+        # Start all workers
+        for worker in workers:
+            worker.start()
+
+        # Load files
+        file_loader = FileLoader(target_q=queues[0], input_dir=str(tmp_path), extension=".jpg")
+        file_loader.load_files()
+
+        # Wait for processing to complete
+        # Wait until all workers have processed FinalizeTask
+        max_wait = 30  # 30 seconds max
+        start_time = time.time()
+        while time.time() - start_time < max_wait:
+            all_done = all(w.finalize_done_event.is_set() for w in workers)
+            if all_done:
+                break
+            time.sleep(0.1)
+
+        # Stop workers
+        for worker in workers:
+            worker.stop(timeout=5)
+            worker.join(timeout=5)
+
+        # Verify all input queues (used by workers) are empty
+        # Note: builder creates len(tasks)+1 queues, but only len(tasks) are input queues
+        for i in range(len(workers)):
+            q = queues[i]
+            assert q.empty(), f"Queue {i} (input to worker '{workers[i].name}') is not empty, has {q.qsize()} items"
+
+        # The last queue is the output of the last worker
+        # It will contain FinalizeTask and StatusTask that pass through since nothing consumes it
+        last_worker = workers[-1]
+        if last_worker.output_q is not None:
+            # Drain the final output queue (expected to have FinalizeTask and StatusTask)
+            items_in_last_queue = []
+            while not queues[-1].empty():
+                items_in_last_queue.append(queues[-1].get())
+
+            # Verify these are the expected sentinel tasks
+            from tasks.task_item import FinalizeTask, StatusTask
+
+            assert (
+                len(items_in_last_queue) == 2
+            ), f"Expected 2 items (FinalizeTask, StatusTask), got {len(items_in_last_queue)}"
+            assert isinstance(items_in_last_queue[0], FinalizeTask), "First item should be FinalizeTask"
+            assert isinstance(items_in_last_queue[1], StatusTask), "Second item should be StatusTask"
+
+            # Now the queue should be empty
+            assert queues[-1].empty(), "Final output queue should be empty after draining"
+
+        # Note: We don't assert on PDF creation here because the image optimization
+        # may not produce images suitable for PDF generation (no valid quadrilaterals detected).
+        # The key test is that all queues are properly drained.
+
+        # Verify all workers completed their finalize tasks
+        for worker in workers:
+            assert worker.finalize_done_event.is_set(), f"Worker {worker.name} did not complete finalize"

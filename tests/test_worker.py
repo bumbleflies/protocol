@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 
 from pipeline.worker import Worker
-from tasks.task_item import TaskProcessor, FinalizableTaskProcessor, FileTask, FinalizeTask
+from tasks.task_item import TaskProcessor, FinalizableTaskProcessor, FileTask, FinalizeTask, StatusTask
 
 
 class CountingProcessor(TaskProcessor):
@@ -188,3 +188,58 @@ class TestWorkerWithTaskProcessor:
 
         worker.stop()
         worker.join(timeout=2)
+
+    def test_worker_handles_status_task(self):
+        """Test that worker correctly handles StatusTask."""
+        input_q = queue.Queue()
+        output_q = queue.Queue()
+        processor = CountingProcessor()
+
+        worker = Worker("test", input_q, output_q, processor)
+        worker.start()
+
+        # Send StatusTask
+        status_task = StatusTask(files_processed=3)
+        status_task.messages.append("Test message")
+        input_q.put(status_task)
+        input_q.put(FinalizeTask())
+
+        # Wait for processing
+        time.sleep(0.5)
+
+        worker.stop()
+        worker.join(timeout=2)
+
+        # StatusTask should pass through to output queue
+        result = output_q.get()
+        assert isinstance(result, StatusTask)
+        assert result.files_processed == 3
+
+    def test_worker_logs_status_task_when_no_output_queue(self, caplog):
+        """Test that worker logs StatusTask messages when it's the last worker."""
+        import logging
+
+        caplog.set_level(logging.INFO, logger="pipeline.worker")
+
+        input_q = queue.Queue()
+        processor = CountingProcessor()
+
+        # No output queue = last worker
+        worker = Worker("test", input_q, None, processor)
+        worker.start()
+
+        # Send StatusTask with messages
+        status_task = StatusTask(files_processed=5, output_file=Path("output.pdf"))
+        status_task.messages.append("PDF saved successfully: output.pdf")
+        input_q.put(status_task)
+        input_q.put(FinalizeTask())
+
+        # Wait for processing
+        time.sleep(0.5)
+
+        worker.stop()
+        worker.join(timeout=2)
+
+        # Check that status messages were logged
+        assert any("PDF saved successfully" in record.message for record in caplog.records)
+        assert any("Pipeline completed. Processed 5 file(s)." in record.message for record in caplog.records)

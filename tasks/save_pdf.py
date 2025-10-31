@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Union
 
 import cv2
 from PIL import Image
@@ -8,7 +8,7 @@ from pypdf import PdfReader, PdfWriter
 from pypdf.generic import RectangleObject
 from pypdf.annotations import Text
 
-from .task_item import FileTask, FinalizableTaskProcessor
+from .task_item import FileTask, FinalizableTaskProcessor, StatusTask
 from .registry import TaskRegistry
 
 logger = logging.getLogger(__name__)
@@ -19,21 +19,35 @@ class PDFSaveTask(FinalizableTaskProcessor):
     def __init__(self, output_path: str = "combined.pdf"):
         self.output_path = Path(output_path)
         self.collected_tasks: List[FileTask] = []
+        self.status_task: Optional[StatusTask] = None
+        self.pdf_generated: bool = False
 
-    def process(self, task: FileTask) -> FileTask:
+    def process(self, task: Union[FileTask, StatusTask]) -> Union[FileTask, StatusTask]:
         """
-        Process a FileTask by collecting it for PDF generation.
+        Process a FileTask or StatusTask.
 
         Args:
-            task: The FileTask to add to the collection
+            task: The task to process (FileTask or StatusTask)
 
         Returns:
-            The same FileTask (unmodified)
+            The processed task
+
+        Raises:
+            TypeError: If task is not FileTask or StatusTask
         """
-        if task.img is not None:
-            self.collected_tasks.append(task)
-            logger.debug(f"FileTask stored for PDF: {task.file_path}")
-        return task
+        if isinstance(task, StatusTask):
+            # Populate status task if PDF was already generated
+            if self.pdf_generated:
+                task.output_file = self.output_path
+                task.messages.append(f"PDF saved successfully: {self.output_path.absolute()}")
+            return task
+        elif isinstance(task, FileTask):
+            if task.img is not None:
+                self.collected_tasks.append(task)
+                logger.debug(f"FileTask stored for PDF: {task.file_path}")
+            return task
+        else:
+            raise TypeError(f"Expected FileTask or StatusTask, got {type(task).__name__}")
 
     def finalize(self) -> None:
         """
@@ -42,6 +56,7 @@ class PDFSaveTask(FinalizableTaskProcessor):
         """
         logger.debug("Finalize signal received, generating annotated PDF...")
         self._finalize_pdf()
+        self.pdf_generated = True
         logger.debug("PDF generation completed")
 
     def _finalize_pdf(self) -> None:
@@ -75,7 +90,6 @@ class PDFSaveTask(FinalizableTaskProcessor):
         # Add annotations with pypdf
         self._add_annotations(temp_pdf_path, self.output_path, sorted_tasks)
         temp_pdf_path.unlink(missing_ok=True)
-        logger.info(f"PDF saved successfully: {self.output_path.absolute()}")
 
     def _add_annotations(self, pdf_path: Path, output_path: Path, tasks: List[FileTask]) -> None:
         """Add static text annotations (like sticky notes) to the PDF."""

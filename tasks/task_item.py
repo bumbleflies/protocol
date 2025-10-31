@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Union
 from uuid import UUID
 
 import numpy as np
@@ -39,22 +39,35 @@ class FinalizeTask:
     pass
 
 
+@dataclass
+class StatusTask:
+    """
+    Task that carries status information through the pipeline.
+    Used to report what was processed and any important messages.
+    """
+
+    files_processed: int = 0
+    output_file: Optional[Path] = None
+    messages: List[str] = field(default_factory=list)
+
+
 class TaskProcessor(ABC):
     """
     Abstract base class for all task processors.
-    Processors handle FileTask objects and return modified FileTask objects.
+    Processors handle FileTask and StatusTask objects.
+    StatusTask should be passed through unchanged by most processors.
     """
 
     @abstractmethod
-    def process(self, task: FileTask) -> FileTask:
+    def process(self, task: Union[FileTask, StatusTask]) -> Union[FileTask, StatusTask]:
         """
-        Process a FileTask and return the result.
+        Process a FileTask or StatusTask and return the result.
 
         Args:
-            task: The FileTask to process
+            task: The FileTask or StatusTask to process
 
         Returns:
-            The processed FileTask (may be the same object or modified)
+            The processed task (FileTask or StatusTask)
         """
         pass
 

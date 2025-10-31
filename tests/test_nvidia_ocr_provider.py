@@ -268,7 +268,7 @@ class TestNvidiaOCRProvider:
         # Create empty ZIP
         with tempfile.TemporaryDirectory() as tmpdir:
             zip_path = Path(tmpdir) / "response.zip"
-            with zipfile.ZipFile(zip_path, "w") as zf:
+            with zipfile.ZipFile(zip_path, "w"):
                 pass  # Empty ZIP
 
             mock_post_response = Mock()

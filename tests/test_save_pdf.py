@@ -11,7 +11,7 @@ import pytest
 from PIL import Image
 
 from tasks.save_pdf import PDFSaveTask
-from tasks.task_item import FileTask, OCRBox
+from tasks.task_item import FileTask, OCRBox, StatusTask
 
 
 class TestPDFSaveTask:
@@ -48,6 +48,13 @@ class TestPDFSaveTask:
 
         assert result == file_task
         assert len(processor.collected_tasks) == 0
+
+    def test_process_raises_type_error_for_invalid_task(self):
+        """Test process() raises TypeError for invalid task type."""
+        processor = PDFSaveTask(output_path="output.pdf")
+
+        with pytest.raises(TypeError, match="Expected FileTask or StatusTask"):
+            processor.process("invalid_task")
 
     def test_finalize_with_no_tasks(self, caplog):
         """Test finalize() with no collected tasks."""

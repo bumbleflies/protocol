@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
-from typing import Optional
+from typing import Optional, Union
 
-from .task_item import FileTask, TaskProcessor
+from .task_item import TaskProcessor, StatusTask, FileTask
 from .registry import TaskRegistry
 
 
@@ -39,22 +39,35 @@ class ImageOptimizationTask(TaskProcessor):
         self.max_area_ratio = max_area_ratio
         self.enable_perspective_correction = enable_perspective_correction
 
-    def process(self, task: FileTask) -> FileTask:
+    def process(self, task: Union[FileTask, StatusTask]) -> Union[FileTask, StatusTask]:
         """
-        Process a FileTask by detecting and cropping the flipchart.
+        Process a FileTask or StatusTask.
 
         Args:
-            task: The FileTask containing the image path
+            task: The FileTask containing the image path, or StatusTask to pass through
 
         Returns:
-            The FileTask with optimized image in the img field
+            The FileTask with optimized image in the img field, or StatusTask unchanged
 
         Raises:
             ValueError: If image cannot be read
+            TypeError: If task is not FileTask or StatusTask
         """
+        # Pass through StatusTask unchanged
+        if isinstance(task, StatusTask):
+            return task
+
+        if not isinstance(task, FileTask):
+            raise TypeError(f"Expected FileTask or StatusTask, got {type(task).__name__}")
+
         img = cv2.imread(str(task.file_path))
         if img is None:
             raise ValueError(f"Could not read image {task.file_path}")
+
+        # First, try to detect and correct rotation
+        rotation_angle = self._detect_rotation_angle(img)
+        if rotation_angle is not None and abs(rotation_angle) > 0.5:  # Only rotate if > 0.5 degrees
+            img = self._rotate_image(img, rotation_angle)
 
         # Detect flipchart quadrilateral (works for flipcharts with clear edges)
         quad = self._detect_flipchart_quad(img)
@@ -108,40 +121,63 @@ class ImageOptimizationTask(TaskProcessor):
         # Preprocessing
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # Bilateral filter to reduce noise while preserving edges
-        blurred = cv2.bilateralFilter(gray, 9, 75, 75)
+        # Try multiple preprocessing strategies
+        strategies = [
+            # Strategy 1: Bilateral filter (preserves edges)
+            lambda g: cv2.bilateralFilter(g, 9, 75, 75),
+            # Strategy 2: Gaussian blur (good for noisy images)
+            lambda g: cv2.GaussianBlur(g, (5, 5), 0),
+            # Strategy 3: Median blur (removes salt-and-pepper noise)
+            lambda g: cv2.medianBlur(g, 5),
+        ]
 
-        # Edge detection with Canny
-        edges = cv2.Canny(blurred, 50, 150)
+        # Try multiple Canny thresholds
+        canny_params = [
+            (50, 150),  # Standard
+            (30, 100),  # Lower thresholds for faint edges
+            (75, 200),  # Higher thresholds for strong edges
+        ]
 
-        # Morphological operations to close gaps in edges
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-        closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=2)
+        for blur_fn in strategies:
+            blurred = blur_fn(gray)
 
-        # Find contours
-        contours, _ = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+            for low_thresh, high_thresh in canny_params:
+                # Edge detection with Canny
+                edges = cv2.Canny(blurred, low_thresh, high_thresh)
 
-        # Sort contours by area (largest first)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)
+                # Dilate to connect nearby edges (helps with rotated/partial edges)
+                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+                edges = cv2.dilate(edges, kernel_dilate, iterations=1)
 
-        # Find the first quadrilateral that meets our criteria
-        for contour in contours[:10]:  # Check top 10 largest contours
-            area = cv2.contourArea(contour)
-            area_ratio = area / image_area
+                # Morphological closing to fill gaps
+                kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+                closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel_close, iterations=3)
 
-            # Filter by area ratio
-            if area_ratio < self.min_area_ratio or area_ratio > self.max_area_ratio:
-                continue
+                # Find contours
+                contours, _ = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-            # Approximate contour to polygon
-            perimeter = cv2.arcLength(contour, True)
-            approx = cv2.approxPolyDP(contour, 0.02 * perimeter, True)
+                # Sort contours by area (largest first)
+                contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
-            # Check if it's a quadrilateral (4 corners)
-            if len(approx) == 4:
-                # Verify it's roughly rectangular (aspect ratio check)
-                if self._is_valid_quad(approx, w, h):
-                    return approx
+                # Find the first quadrilateral that meets our criteria
+                for contour in contours[:15]:  # Check top 15 largest contours
+                    area = cv2.contourArea(contour)
+                    area_ratio = area / image_area
+
+                    # Filter by area ratio
+                    if area_ratio < self.min_area_ratio or area_ratio > self.max_area_ratio:
+                        continue
+
+                    # Try multiple epsilon values for polygon approximation
+                    perimeter = cv2.arcLength(contour, True)
+                    for epsilon_factor in [0.015, 0.02, 0.025, 0.03, 0.04]:
+                        approx = cv2.approxPolyDP(contour, epsilon_factor * perimeter, True)
+
+                        # Check if it's a quadrilateral (4 corners)
+                        if len(approx) == 4:
+                            # Verify it's roughly rectangular (aspect ratio check)
+                            if self._is_valid_quad(approx, w, h):
+                                return approx
 
         return None
 
@@ -331,3 +367,97 @@ class ImageOptimizationTask(TaskProcessor):
 
         # Last resort: return original image
         return img
+
+    def _detect_rotation_angle(self, img: np.ndarray) -> Optional[float]:
+        """
+        Detect rotation angle of the document using Hough line detection.
+
+        Analyzes dominant lines in the image to determine if the document
+        is rotated. Returns angle needed to correct rotation.
+
+        Args:
+            img: Input image
+
+        Returns:
+            Rotation angle in degrees (positive = counterclockwise), or None if can't detect
+        """
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Edge detection
+        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+
+        # Hough line detection
+        lines = cv2.HoughLinesP(
+            edges,
+            rho=1,
+            theta=np.pi / 180,
+            threshold=100,
+            minLineLength=min(img.shape[:2]) // 4,
+            maxLineGap=20,
+        )
+
+        if lines is None or len(lines) == 0:
+            return None
+
+        # Calculate angles of all detected lines
+        angles = []
+        for line_data in lines:
+            # HoughLinesP returns lines in format [[[x1, y1, x2, y2]]]
+            line_coords = line_data[0]  # type: ignore[index]  # Extract [x1, y1, x2, y2]
+            x1 = int(line_coords[0])  # type: ignore[index]
+            y1 = int(line_coords[1])  # type: ignore[index]
+            x2 = int(line_coords[2])  # type: ignore[index]
+            y2 = int(line_coords[3])  # type: ignore[index]
+            # Calculate angle in degrees
+            angle = np.degrees(np.arctan2(float(y2 - y1), float(x2 - x1)))
+            # Normalize to [-45, 45] range (considering 90-degree symmetry)
+            if angle < -45:
+                angle += 90
+            elif angle > 45:
+                angle -= 90
+            angles.append(angle)
+
+        if not angles:
+            return None
+
+        # Use median angle to avoid outliers
+        median_angle = float(np.median(angles))
+
+        # Only return angle if it's significant (> 0.5 degrees)
+        if abs(median_angle) > 0.5:
+            return -median_angle  # Negate to get correction angle
+        return None
+
+    def _rotate_image(self, img: np.ndarray, angle: float) -> np.ndarray:
+        """
+        Rotate image by given angle, expanding canvas to fit.
+
+        Args:
+            img: Input image
+            angle: Rotation angle in degrees (positive = counterclockwise)
+
+        Returns:
+            Rotated image with expanded canvas
+        """
+        h, w = img.shape[:2]
+        center = (w // 2, h // 2)
+
+        # Get rotation matrix
+        rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+
+        # Calculate new bounding dimensions
+        abs_cos = abs(rotation_matrix[0, 0])
+        abs_sin = abs(rotation_matrix[0, 1])
+        new_w = int(h * abs_sin + w * abs_cos)
+        new_h = int(h * abs_cos + w * abs_sin)
+
+        # Adjust rotation matrix to account for translation
+        rotation_matrix[0, 2] += new_w / 2 - center[0]
+        rotation_matrix[1, 2] += new_h / 2 - center[1]
+
+        # Perform rotation with white background
+        rotated = cv2.warpAffine(
+            img, rotation_matrix, (new_w, new_h), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255)
+        )
+
+        return rotated

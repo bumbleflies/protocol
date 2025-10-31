@@ -238,6 +238,14 @@ Tasks flow through the pipeline in two forms:
 
 2. **FinalizeTask** ([tasks/task_item.py](tasks/task_item.py)): Sentinel task injected by FileLoader after all files. Worker detects this and calls `finalize()` on processors that support it.
 
+3. **StatusTask** ([tasks/task_item.py](tasks/task_item.py)): Status information task that flows through the entire pipeline. Contains:
+   - `files_processed`: Count of files processed
+   - `output_file`: Optional output file path
+   - `messages`: List of status messages to display
+   - Injected by FileLoader after FinalizeTask
+   - Passes through all processors unchanged (via `isinstance` check)
+   - Logged by the final worker when there's no output queue
+
 ### Processing Tasks
 
 Each processing stage is implemented as a TaskProcessor:
@@ -313,11 +321,26 @@ PyPDF2 annotations ([tasks/save_pdf.py](tasks/save_pdf.py)):
 
 ### Thread Coordination
 
-Workers use `finalize_done_event` to coordinate shutdown:
+The pipeline uses careful coordination to ensure all tasks are processed before shutdown:
+
+**Queue Draining** ([main.py](main.py)):
+- After FileLoader injects all tasks, main thread calls `queue.join()` on each input queue
+- This blocks until all tasks (FileTasks, FinalizeTask, and StatusTask) are fully processed
+- Only after all queues are drained do workers receive the stop signal
+- This ensures no tasks are left unprocessed during shutdown
+
+**Worker Finalization**:
+- Workers use `finalize_done_event` to coordinate shutdown
 - Worker processes FinalizeTask and sets event
 - `worker.stop(timeout)` waits for this event before setting stop signal
 - **Safety improvement**: Now includes timeout (default 30s) to prevent infinite hangs
 - Ensures all work completes before threads exit
+
+**Task Processing Order**:
+1. All FileTasks are processed by all workers
+2. FinalizeTask triggers `finalize()` on FinalizableTaskProcessor instances
+3. StatusTask flows through all workers and is logged by the final worker
+4. All queues are drained before workers exit
 
 ## Testing
 

@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from tasks.ocr import UploadTask, OCRTask
-from tasks.task_item import FileTask, OCRBox
+from tasks.task_item import FileTask, OCRBox, StatusTask
 from tasks.ocr_provider import AssetUploader, OCRProvider
 
 
@@ -23,6 +23,26 @@ class TestUploadTask:
         task = UploadTask(uploader=mock_uploader)
 
         assert task.uploader == mock_uploader
+
+    def test_process_status_task_passes_through(self):
+        """Test process() passes StatusTask through unchanged."""
+        mock_uploader = Mock(spec=AssetUploader)
+        processor = UploadTask(uploader=mock_uploader)
+        status_task = StatusTask(files_processed=3)
+
+        result = processor.process(status_task)
+
+        assert result is status_task
+        assert result.files_processed == 3
+        mock_uploader.upload.assert_not_called()
+
+    def test_process_raises_type_error_for_invalid_task(self):
+        """Test process() raises TypeError for invalid task type."""
+        mock_uploader = Mock(spec=AssetUploader)
+        processor = UploadTask(uploader=mock_uploader)
+
+        with pytest.raises(TypeError, match="Expected FileTask or StatusTask"):
+            processor.process("invalid_task")
 
     def test_process_uploads_image(self):
         """Test process() uploads image and sets asset_id."""
@@ -144,6 +164,26 @@ class TestOCRTask:
         task = OCRTask(provider=mock_provider)
 
         assert task.provider == mock_provider
+
+    def test_process_status_task_passes_through(self):
+        """Test process() passes StatusTask through unchanged."""
+        mock_provider = Mock(spec=OCRProvider)
+        processor = OCRTask(provider=mock_provider)
+        status_task = StatusTask(files_processed=7)
+
+        result = processor.process(status_task)
+
+        assert result is status_task
+        assert result.files_processed == 7
+        mock_provider.detect_text.assert_not_called()
+
+    def test_process_raises_type_error_for_invalid_task(self):
+        """Test process() raises TypeError for invalid task type."""
+        mock_provider = Mock(spec=OCRProvider)
+        processor = OCRTask(provider=mock_provider)
+
+        with pytest.raises(TypeError, match="Expected FileTask or StatusTask"):
+            processor.process("invalid_task")
 
     def test_process_performs_ocr(self):
         """Test process() performs OCR and sets ocr_boxes."""

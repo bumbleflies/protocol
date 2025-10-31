@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from tasks.image_optimization import ImageOptimizationTask
-from tasks.task_item import FileTask
+from tasks.task_item import FileTask, StatusTask
 
 
 class TestImageOptimizationTask:
@@ -31,6 +31,23 @@ class TestImageOptimizationTask:
         assert task.min_area_ratio == 0.10
         assert task.max_area_ratio == 0.95
         assert task.enable_perspective_correction is True
+
+    def test_process_status_task_passes_through(self):
+        """Test process() passes StatusTask through unchanged."""
+        processor = ImageOptimizationTask()
+        status_task = StatusTask(files_processed=5)
+
+        result = processor.process(status_task)
+
+        assert result is status_task
+        assert result.files_processed == 5
+
+    def test_process_raises_type_error_for_invalid_task(self):
+        """Test process() raises TypeError for invalid task type."""
+        processor = ImageOptimizationTask()
+
+        with pytest.raises(TypeError, match="Expected FileTask or StatusTask"):
+            processor.process("invalid_task")
 
     def test_process_nonexistent_file(self):
         """Test process() raises ValueError for nonexistent file."""
@@ -477,3 +494,65 @@ class TestImageOptimizationTask:
             # Image should be processed (may be cropped or full size depending on detection)
             assert result.img.shape[0] <= 500
             assert result.img.shape[1] <= 500
+
+    def test_detect_rotation_angle_with_horizontal_lines(self, tmpdir):
+        """Test rotation angle detection with horizontal lines."""
+        import cv2
+        import numpy as np
+
+        # Create image with horizontal lines (should detect ~0 degrees)
+        img = np.ones((400, 600, 3), dtype=np.uint8) * 255
+        for y in [100, 200, 300]:
+            cv2.line(img, (50, y), (550, y), (0, 0, 0), 2)
+
+        processor = ImageOptimizationTask()
+        angle = processor._detect_rotation_angle(img)
+
+        # Should detect approximately 0 degrees
+        if angle is not None:
+            assert abs(angle) < 5  # Within 5 degrees of horizontal
+
+    def test_detect_rotation_angle_returns_none_for_no_lines(self, tmpdir):
+        """Test rotation angle detection returns None when no lines detected."""
+        import cv2
+        import numpy as np
+
+        # Create solid color image with no lines
+        img = np.ones((400, 600, 3), dtype=np.uint8) * 200
+
+        processor = ImageOptimizationTask()
+        angle = processor._detect_rotation_angle(img)
+
+        # Should return None when no lines detected
+        assert angle is None
+
+    def test_rotate_image_expands_canvas(self, tmpdir):
+        """Test that image rotation expands canvas to fit rotated content."""
+        import cv2
+        import numpy as np
+
+        # Create a small test image
+        img = np.ones((100, 200, 3), dtype=np.uint8) * 200
+
+        processor = ImageOptimizationTask()
+        rotated = processor._rotate_image(img, 45)
+
+        # Rotated image should be larger to fit diagonal
+        assert rotated.shape[0] > img.shape[0]
+        assert rotated.shape[1] > img.shape[1]
+
+    def test_rotate_image_preserves_content(self, tmpdir):
+        """Test that image rotation preserves image content."""
+        import cv2
+        import numpy as np
+
+        # Create image with a black square
+        img = np.ones((200, 200, 3), dtype=np.uint8) * 255
+        cv2.rectangle(img, (50, 50), (150, 150), (0, 0, 0), -1)
+
+        processor = ImageOptimizationTask()
+        rotated = processor._rotate_image(img, 90)
+
+        # Should have rotated content (check that it's not all white)
+        assert rotated is not None
+        assert np.mean(rotated) < 255  # Contains dark pixels

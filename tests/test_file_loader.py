@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from pipeline.file_loader import FileLoader
-from tasks.task_item import FileTask, FinalizeTask
+from tasks.task_item import FileTask, FinalizeTask, StatusTask
 
 
 class TestFileLoader:
@@ -79,10 +79,12 @@ class TestFileLoader:
 
             loader.load_files()
 
-            # Should only have FinalizeTask
-            assert q.qsize() == 1
-            task = q.get()
-            assert isinstance(task, FinalizeTask)
+            # Should have FinalizeTask + StatusTask
+            assert q.qsize() == 2
+            task1 = q.get()
+            assert isinstance(task1, FinalizeTask)
+            task2 = q.get()
+            assert isinstance(task2, StatusTask)
 
     def test_load_files_single_file(self):
         """Test load_files with single file."""
@@ -96,8 +98,8 @@ class TestFileLoader:
 
             loader.load_files()
 
-            # Should have FileTask + FinalizeTask
-            assert q.qsize() == 2
+            # Should have FileTask + FinalizeTask + StatusTask
+            assert q.qsize() == 3
 
             # First should be FileTask
             task1 = q.get()
@@ -127,8 +129,8 @@ class TestFileLoader:
 
             loader.load_files()
 
-            # Should have 3 FileTasks + 1 FinalizeTask
-            assert q.qsize() == 4
+            # Should have 3 FileTasks + 1 FinalizeTask + 1 StatusTask
+            assert q.qsize() == 5
 
             # Verify sorting
             task1 = q.get()
@@ -166,8 +168,8 @@ class TestFileLoader:
 
             loader.load_files()
 
-            # Should have 5 FileTasks + 1 FinalizeTask
-            assert q.qsize() == 6
+            # Should have 5 FileTasks + 1 FinalizeTask + 1 StatusTask
+            assert q.qsize() == 7
 
             # Verify sorting
             expected_order = [
@@ -201,8 +203,8 @@ class TestFileLoader:
 
             loader.load_files()
 
-            # Should have 2 JPG files + 1 FinalizeTask
-            assert q.qsize() == 3
+            # Should have 2 JPG files + 1 FinalizeTask + 1 StatusTask
+            assert q.qsize() == 4
 
             task1 = q.get()
             assert isinstance(task1, FileTask)
@@ -231,8 +233,8 @@ class TestFileLoader:
 
             loader.load_files()
 
-            # Should only have 1 file from root + FinalizeTask
-            assert q.qsize() == 2
+            # Should only have 1 file from root + FinalizeTask + StatusTask
+            assert q.qsize() == 3
 
             task1 = q.get()
             assert isinstance(task1, FileTask)
@@ -276,8 +278,8 @@ class TestFileLoader:
 
             loader.load_files()
 
-            # Should have 4 FileTasks + 1 FinalizeTask
-            assert q.qsize() == 5
+            # Should have 4 FileTasks + 1 FinalizeTask + 1 StatusTask
+            assert q.qsize() == 6
 
             # Numbered files come first
             task1 = q.get()
@@ -301,6 +303,9 @@ class TestFileLoader:
             assert task4.file_path.name == "beta.jpg"
             assert task4.sort_key == 4.0
 
-            # Last should be FinalizeTask
+            # Should have FinalizeTask and StatusTask
             task5 = q.get()
             assert isinstance(task5, FinalizeTask)
+
+            task6 = q.get()
+            assert isinstance(task6, StatusTask)
