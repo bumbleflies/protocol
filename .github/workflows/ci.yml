@@ -1,0 +1,177 @@
+name: CI - Test & Quality
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    name: Test on Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.11', '3.12', '3.13']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r test_requirements.txt
+
+    - name: Run tests with pytest
+      run: |
+        pytest tests/ -v --tb=short --junitxml=test-results-${{ matrix.os }}-${{ matrix.python-version }}.xml
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
+        path: test-results-*.xml
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r test_requirements.txt
+
+    - name: Run tests with coverage
+      run: |
+        pytest tests/ --cov=tasks --cov=pipeline --cov-report=xml --cov-report=html --cov-report=term
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: Upload coverage HTML report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: htmlcov/
+
+    - name: Check coverage threshold
+      run: |
+        coverage report --fail-under=45
+
+  lint:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r test_requirements.txt
+
+    - name: Run flake8
+      run: |
+        flake8 tasks/ pipeline/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 tasks/ pipeline/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+      continue-on-error: true
+
+    - name: Run black (check only)
+      run: |
+        black --check tasks/ pipeline/ tests/
+      continue-on-error: true
+
+    - name: Run mypy type checking
+      run: |
+        mypy tasks/ pipeline/ --ignore-missing-imports --no-strict-optional
+      continue-on-error: true
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit
+
+    - name: Run safety check (dependency vulnerabilities)
+      run: |
+        safety check --file requirements.txt --json || true
+      continue-on-error: true
+
+    - name: Run bandit (security issues)
+      run: |
+        bandit -r tasks/ pipeline/ -f json -o bandit-report.json || true
+      continue-on-error: true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+
+  build-status:
+    name: Build Status
+    runs-on: ubuntu-latest
+    needs: [test, coverage, lint]
+    if: always()
+
+    steps:
+    - name: Check build status
+      run: |
+        if [ "${{ needs.test.result }}" != "success" ]; then
+          echo "Tests failed"
+          exit 1
+        fi
+        if [ "${{ needs.coverage.result }}" != "success" ]; then
+          echo "Coverage check failed"
+          exit 1
+        fi
+        echo "All checks passed!"

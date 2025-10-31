@@ -1,0 +1,31 @@
+# Pipeline Configuration
+# This file defines the sequence of tasks and their parameters
+
+# List of tasks to execute in order
+tasks:
+  - name: optimize
+    task_type: image_optimization  # Registry name
+    params:
+      padding: 10
+      min_crop_ratio: 0.8
+
+  - name: upload
+    task_type: upload  # Registry name
+    params:
+      uploader: "@nvidia_uploader"  # Reference to registered provider
+
+  - name: ocr
+    task_type: ocr  # Registry name
+    params:
+      provider: "@nvidia_ocr"  # Reference to registered provider
+
+  - name: save
+    task_type: save_pdf  # Registry name
+    params:
+      output_path: "combined.pdf"
+
+# Global configuration
+input_dir: "."
+extension: ".jpg"
+output_file: "combined.pdf"
+enable_ocr: true

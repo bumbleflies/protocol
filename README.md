@@ -1,5 +1,12 @@
 # Flipchart OCR & PDF Pipeline
 
+[![CI](https://github.com/bumbleflies/protocol/actions/workflows/ci.yml/badge.svg)](https://github.com/bumbleflies/protocol/actions/workflows/ci.yml)
+[![Release](https://github.com/bumbleflies/protocol/actions/workflows/release.yml/badge.svg)](https://github.com/bumbleflies/protocol/actions/workflows/release.yml)
+[![codecov](https://codecov.io/gh/bumbleflies/protocol/branch/main/graph/badge.svg)](https://codecov.io/gh/bumbleflies/protocol)
+[![CodeQL](https://github.com/bumbleflies/protocol/actions/workflows/codeql.yml/badge.svg)](https://github.com/bumbleflies/protocol/actions/workflows/codeql.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Python-based pipeline for processing images of flipcharts, performing OCR (Optical Character Recognition) using NVIDIA
 OCR services, optionally uploading to NVCF, annotating OCR results, and generating a combined PDF. Designed for quick
 processing, annotation, and archival of flipchart content.
@@ -123,6 +130,39 @@ flipchart-pipeline/
 * All sensitive information (API keys) should be stored in `.env`.
 * OCR language is set to German by default; this can be configured in `OCRTask`.
 * Worker threads allow asynchronous image processing for large datasets.
+
+---
+
+## Recent Updates (SOLID Refactoring)
+
+The codebase has been refactored to follow SOLID principles! 🎉
+
+**Key improvements:**
+- ✅ Abstract base classes for task processors (LSP compliance)
+- ✅ Provider abstraction for OCR services (DIP compliance)
+- ✅ Task registry system (OCP compliance)
+- ✅ Configuration-based pipeline with dependency injection
+- ✅ 40 comprehensive tests with 50% code coverage
+- ✅ Backward compatible with existing usage
+
+**New features:**
+```bash
+# Use YAML configuration for flexible pipelines
+python main.py --config pipeline_config.yaml
+```
+
+**Documentation:**
+- [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) - Complete refactoring details
+- [CLAUDE.md](CLAUDE.md) - Architecture documentation
+- [TEST_RESULTS.md](TEST_RESULTS.md) - Test coverage and results
+- [tests/README.md](tests/README.md) - Testing guide
+
+**Running tests:**
+```bash
+pip install -r requirements.txt
+pip install -r test_requirements.txt
+pytest tests/ -v
+```
 
 ---
 

@@ -1,9 +1,11 @@
 import cv2
 
-from .task_item import FileTask, FinalizeTask
+from .task_item import FileTask, TaskProcessor
+from .registry import TaskRegistry
 
 
-class ImageOptimizationTask:
+@TaskRegistry.register("image_optimization")
+class ImageOptimizationTask(TaskProcessor):
     """
     Optimizes flipchart images in memory.
     Crops central content more conservatively using adaptive threshold and dilation.
@@ -17,10 +19,19 @@ class ImageOptimizationTask:
         self.padding = padding
         self.min_crop_ratio = min_crop_ratio
 
-    def __call__(self, task: FileTask | FinalizeTask) -> FileTask | FinalizeTask:
-        if isinstance(task, FinalizeTask):
-            return task
+    def process(self, task: FileTask) -> FileTask:
+        """
+        Process a FileTask by optimizing its image.
 
+        Args:
+            task: The FileTask containing the image path
+
+        Returns:
+            The FileTask with optimized image in the img field
+
+        Raises:
+            ValueError: If image cannot be read
+        """
         img = cv2.imread(str(task.file_path))
         if img is None:
             raise ValueError(f"Could not read image {task.file_path}")

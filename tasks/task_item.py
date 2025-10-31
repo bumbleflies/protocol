@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, List
@@ -33,3 +34,39 @@ class FileTask:
 class FinalizeTask:
     """Special task to signal the end of the pipeline for PDF generation."""
     pass
+
+
+class TaskProcessor(ABC):
+    """
+    Abstract base class for all task processors.
+    Processors handle FileTask objects and return modified FileTask objects.
+    """
+
+    @abstractmethod
+    def process(self, task: FileTask) -> FileTask:
+        """
+        Process a FileTask and return the result.
+
+        Args:
+            task: The FileTask to process
+
+        Returns:
+            The processed FileTask (may be the same object or modified)
+        """
+        pass
+
+
+class FinalizableTaskProcessor(TaskProcessor):
+    """
+    Abstract base class for processors that need finalization logic.
+    Used for tasks that accumulate state and need to perform an action
+    when the FinalizeTask signal is received.
+    """
+
+    @abstractmethod
+    def finalize(self) -> None:
+        """
+        Called when FinalizeTask is received.
+        Use this to perform cleanup, save accumulated data, etc.
+        """
+        pass

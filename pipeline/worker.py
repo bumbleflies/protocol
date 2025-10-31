@@ -4,6 +4,7 @@ from queue import Queue, Empty
 from typing import Callable, Optional, Union
 
 from tasks import FileTask, FinalizeTask
+from tasks.task_item import TaskProcessor, FinalizableTaskProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -14,21 +15,28 @@ class Worker(threading.Thread):
             name: str,
             input_q: Queue[Union[FileTask, FinalizeTask]],
             output_q: Optional[Queue[FileTask]],
-            process_fn: Callable[[Union[FileTask, FinalizeTask]], Union[FileTask, FinalizeTask]]
+            process_fn: Union[TaskProcessor, Callable[[Union[FileTask, FinalizeTask]], Union[FileTask, FinalizeTask]]]
     ) -> None:
         super().__init__(daemon=True, name=name)
         self.name: str = name
         self.input_q: Queue[Union[FileTask, FinalizeTask]] = input_q
         self.output_q: Optional[Queue[FileTask]] = output_q
-        self.process_fn: Callable[[Union[FileTask, FinalizeTask]], Union[FileTask, FinalizeTask]] = process_fn
+        self.process_fn: Union[TaskProcessor, Callable] = process_fn
         self.current_task: Optional[Union[FileTask, FinalizeTask]] = None
         self.done_count: int = 0
         self._stop_event: threading.Event = threading.Event()
         self.finalize_done_event: threading.Event = threading.Event()  # signals finalize task done
 
-    def stop(self) -> None:
+    def stop(self, timeout: float = 30.0) -> None:
+        """
+        Stop the worker thread gracefully.
+
+        Args:
+            timeout: Maximum time to wait for finalization (seconds)
+        """
         logger.debug("Stop signal received")
-        self.finalize_done_event.wait()
+        if not self.finalize_done_event.wait(timeout=timeout):
+            logger.warning(f"Worker '{self.name}' finalize timeout after {timeout}s")
         self._stop_event.set()
 
     def run(self) -> None:
@@ -42,7 +50,19 @@ class Worker(threading.Thread):
 
             self.current_task = task
             try:
-                result: Union[FileTask, FinalizeTask] = self.process_fn(task)
+                # Handle new TaskProcessor interface
+                if isinstance(self.process_fn, TaskProcessor):
+                    if isinstance(task, FinalizeTask):
+                        # Call finalize if processor supports it
+                        if isinstance(self.process_fn, FinalizableTaskProcessor):
+                            self.process_fn.finalize()
+                        result = task  # Pass through FinalizeTask
+                    else:
+                        result = self.process_fn.process(task)
+                else:
+                    # Backward compatibility: call as Callable
+                    result = self.process_fn(task)
+
                 logger.debug(f"Processed task: {task}")
             except Exception as e:
                 logger.exception(f"Error processing task {task}: {e}")

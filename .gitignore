@@ -210,3 +210,11 @@ __marimo__/
 /.python-version
 .idea/
 testdir/
+
+# CI/CD specific
+test-results*.xml
+bandit-report.json
+debug.log
+
+# GitHub Actions
+.github/workflows/*.log

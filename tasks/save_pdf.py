@@ -1,34 +1,47 @@
 import logging
 from pathlib import Path
-from typing import List, Union
+from typing import List
 
 import cv2
 from PIL import Image
 from PyPDF2 import PdfReader, PdfWriter
 from PyPDF2.generic import RectangleObject, AnnotationBuilder
 
-from .task_item import FileTask, FinalizeTask
+from .task_item import FileTask, FinalizableTaskProcessor
+from .registry import TaskRegistry
 
 logger = logging.getLogger(__name__)
 
 
-class PDFSaveTask:
+@TaskRegistry.register("save_pdf")
+class PDFSaveTask(FinalizableTaskProcessor):
     def __init__(self, output_path: str = "combined.pdf"):
         self.output_path = Path(output_path)
         self.collected_tasks: List[FileTask] = []
 
-    def __call__(self, task: Union[FileTask, FinalizeTask]) -> Union[FileTask, FinalizeTask]:
-        if isinstance(task, FinalizeTask):
-            logger.debug("FinalizeTask received, generating annotated PDF...")
-            self._finalize_pdf()
-            logger.debug("FinalizeTask processed")
-            return task
+    def process(self, task: FileTask) -> FileTask:
+        """
+        Process a FileTask by collecting it for PDF generation.
 
+        Args:
+            task: The FileTask to add to the collection
+
+        Returns:
+            The same FileTask (unmodified)
+        """
         if task.img is not None:
             self.collected_tasks.append(task)
             logger.debug(f"FileTask stored for PDF: {task.file_path}")
-
         return task
+
+    def finalize(self) -> None:
+        """
+        Generate the final PDF when FinalizeTask is received.
+        This method is called by Worker when the pipeline completes.
+        """
+        logger.debug("Finalize signal received, generating annotated PDF...")
+        self._finalize_pdf()
+        logger.debug("PDF generation completed")
 
     def _finalize_pdf(self) -> None:
         """Combine collected images into a PDF and add annotations."""
