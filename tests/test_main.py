@@ -484,3 +484,37 @@ class TestIntegration:
             mock_monitor_instance.start.assert_called_once()
             mock_monitor_instance.stop.assert_called_once()
             mock_monitor_instance.join.assert_called_once()
+
+    def test_pdf_saved_log_message_appears(self, tmp_path, caplog):
+        """Test that 'PDF saved successfully' log message appears when PDF is saved."""
+        import cv2
+        import logging
+        import numpy as np
+        from tasks.save_pdf import PDFSaveTask
+        from tasks.task_item import FileTask
+
+        # Set caplog to capture from tasks.save_pdf logger
+        caplog.set_level(logging.INFO, logger="tasks.save_pdf")
+
+        # Create a simple test image in memory
+        img = np.ones((100, 100, 3), dtype=np.uint8) * 200  # Gray image
+
+        # Create file tasks with images
+        task1 = FileTask(file_path=Path("test1.jpg"), sort_key=1.0)
+        task1.img = img
+        task2 = FileTask(file_path=Path("test2.jpg"), sort_key=2.0)
+        task2.img = img
+
+        # Create PDFSaveTask and process tasks
+        output_pdf = tmp_path / "test_output.pdf"
+        pdf_task = PDFSaveTask(output_path=str(output_pdf))
+
+        pdf_task.process(task1)
+        pdf_task.process(task2)
+        pdf_task.finalize()
+
+        # Verify PDF was created
+        assert output_pdf.exists()
+
+        # Verify log message appeared
+        assert any("PDF saved successfully" in record.message for record in caplog.records)

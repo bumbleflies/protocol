@@ -60,8 +60,8 @@ class TestFileLoader:
         q = queue.Queue()
         loader = FileLoader(target_q=q)
 
-        assert loader._compute_sort_key(Path("file.jpg")) == 0.0
-        assert loader._compute_sort_key(Path("random_name.jpg")) == 0.0
+        assert loader._compute_sort_key(Path("file.jpg")) is None
+        assert loader._compute_sort_key(Path("random_name.jpg")) is None
 
     def test_load_files_nonexistent_directory(self):
         """Test load_files raises FileNotFoundError for nonexistent directory."""
@@ -261,3 +261,46 @@ class TestFileLoader:
 
             task1 = q.get()
             assert isinstance(task1, FileTask)
+
+    def test_load_files_unnumbered_files_get_sequential_numbers(self):
+        """Test that unnumbered files get sequential sort keys after numbered files."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create mix of numbered and unnumbered files
+            (Path(tmpdir) / "01_first.jpg").touch()
+            (Path(tmpdir) / "02_second.jpg").touch()
+            (Path(tmpdir) / "alpha.jpg").touch()
+            (Path(tmpdir) / "beta.jpg").touch()
+
+            q = queue.Queue()
+            loader = FileLoader(target_q=q, input_dir=tmpdir, extension=".jpg")
+
+            loader.load_files()
+
+            # Should have 4 FileTasks + 1 FinalizeTask
+            assert q.qsize() == 5
+
+            # Numbered files come first
+            task1 = q.get()
+            assert isinstance(task1, FileTask)
+            assert task1.file_path.name == "01_first.jpg"
+            assert task1.sort_key == 1.0
+
+            task2 = q.get()
+            assert isinstance(task2, FileTask)
+            assert task2.file_path.name == "02_second.jpg"
+            assert task2.sort_key == 2.0
+
+            # Unnumbered files get sequential numbers (sorted by name)
+            task3 = q.get()
+            assert isinstance(task3, FileTask)
+            assert task3.file_path.name == "alpha.jpg"
+            assert task3.sort_key == 3.0  # Continues from max numbered file
+
+            task4 = q.get()
+            assert isinstance(task4, FileTask)
+            assert task4.file_path.name == "beta.jpg"
+            assert task4.sort_key == 4.0
+
+            # Last should be FinalizeTask
+            task5 = q.get()
+            assert isinstance(task5, FinalizeTask)

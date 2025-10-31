@@ -56,7 +56,7 @@ class ImageOptimizationTask(TaskProcessor):
         if img is None:
             raise ValueError(f"Could not read image {task.file_path}")
 
-        # Detect flipchart quadrilateral
+        # Detect flipchart quadrilateral (works for flipcharts with clear edges)
         quad = self._detect_flipchart_quad(img)
 
         if quad is not None:
@@ -68,8 +68,17 @@ class ImageOptimizationTask(TaskProcessor):
                 x, y, w, h = cv2.boundingRect(quad)
                 img = img[y : y + h, x : x + w]
         else:
-            # Fallback: aggressive edge-based cropping
-            img = self._fallback_edge_crop(img)
+            # Try brightness-based paper detection (works for white/bright paper)
+            quad_bright = self._detect_bright_paper(img)
+            if quad_bright is not None:
+                if self.enable_perspective_correction:
+                    img = self._apply_perspective_transform(img, quad_bright)
+                else:
+                    x, y, w, h = cv2.boundingRect(quad_bright)
+                    img = img[y : y + h, x : x + w]
+            else:
+                # Last resort: aggressive edge-based cropping
+                img = self._fallback_edge_crop(img)
 
         # Resize to target width while maintaining aspect ratio
         if img.shape[1] > self.target_width:
@@ -133,6 +142,64 @@ class ImageOptimizationTask(TaskProcessor):
                 # Verify it's roughly rectangular (aspect ratio check)
                 if self._is_valid_quad(approx, w, h):
                     return approx
+
+        return None
+
+    def _detect_bright_paper(self, img: np.ndarray) -> Optional[np.ndarray]:
+        """
+        Detect white/bright paper using brightness thresholding.
+
+        This method works well for clean white flipchart paper on darker backgrounds
+        where edge detection fails due to low contrast at paper edges.
+
+        Args:
+            img: Input BGR image
+
+        Returns:
+            4-point contour of the paper, or None if not found
+        """
+        h, w = img.shape[:2]
+        image_area = h * w
+
+        # Convert to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Try multiple threshold values - lower values include more of background,
+        # higher values isolate the brightest paper regions
+        for threshold_value in [210, 200, 190, 180]:
+            _, bright_mask = cv2.threshold(gray, threshold_value, 255, cv2.THRESH_BINARY)
+
+            # Morphological closing to fill content holes and connect paper regions
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 25))
+            closed = cv2.morphologyEx(bright_mask, cv2.MORPH_CLOSE, kernel, iterations=3)
+
+            # Find external contours (outermost boundaries only)
+            contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+            # Find the first suitable quadrilateral
+            for contour in contours[:5]:  # Check top 5 largest bright regions
+                area = cv2.contourArea(contour)
+                area_ratio = area / image_area
+
+                # Paper should be significant portion of image (15-90%)
+                # Lower threshold (15%) to catch tightly-cropped flipcharts
+                if area_ratio < 0.15 or area_ratio > 0.90:
+                    continue
+
+                # Get convex hull first (straightens curved edges)
+                hull = cv2.convexHull(contour)
+
+                # Approximate hull to polygon
+                perimeter = cv2.arcLength(hull, True)
+
+                # Try different epsilon values to find a quadrilateral
+                for epsilon_factor in [0.02, 0.03, 0.04, 0.05, 0.06]:
+                    approx = cv2.approxPolyDP(hull, epsilon_factor * perimeter, True)
+
+                    if len(approx) == 4:
+                        if self._is_valid_quad(approx, w, h):
+                            return approx
 
         return None
 

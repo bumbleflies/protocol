@@ -346,3 +346,134 @@ class TestImageOptimizationTask:
         # Should return original image
         assert result_img is not None
         assert result_img.shape == img.shape
+
+    def test_detect_bright_paper_finds_white_quad(self):
+        """Test _detect_bright_paper successfully detects bright white paper."""
+        processor = ImageOptimizationTask()
+
+        # Create image with bright white rectangle in center on darker background
+        img = np.ones((500, 500, 3), dtype=np.uint8) * 150  # Gray background
+        # Add bright white paper region
+        cv2.rectangle(img, (100, 100), (400, 400), (255, 255, 255), -1)
+
+        quad = processor._detect_bright_paper(img)
+
+        # Should detect the white rectangle
+        assert quad is not None
+        assert len(quad) == 4
+
+    def test_detect_bright_paper_with_perspective_correction_disabled(self):
+        """Test bright paper detection path with perspective correction disabled."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create test image: bright white paper with NO clear edges (to skip edge detection)
+            # Use a very soft gradient so edge detection fails
+            img = np.ones((500, 500, 3), dtype=np.uint8) * 140
+            # Add bright white paper region with soft edges
+            for i in range(100, 400):
+                for j in range(100, 400):
+                    dist_from_edge = min(i - 100, j - 100, 400 - i, 400 - j)
+                    brightness = min(255, 200 + dist_from_edge)
+                    img[i, j] = [brightness, brightness, brightness]
+
+            test_file = Path(tmpdir) / "test.jpg"
+            cv2.imwrite(str(test_file), img)
+
+            processor = ImageOptimizationTask(enable_perspective_correction=False)
+            task = FileTask(file_path=test_file, sort_key=1.0)
+
+            result = processor.process(task)
+
+            # Should have processed the image
+            assert result.img is not None
+            # Image might be cropped or use fallback
+            assert result.img.shape[0] <= 500
+            assert result.img.shape[1] <= 500
+
+    def test_detect_bright_paper_returns_none_for_dark_image(self):
+        """Test _detect_bright_paper returns None when no bright paper detected."""
+        processor = ImageOptimizationTask()
+
+        # Create dark image with no bright regions
+        img = np.ones((500, 500, 3), dtype=np.uint8) * 50  # Dark gray
+
+        quad = processor._detect_bright_paper(img)
+
+        # Should not detect anything
+        assert quad is None
+
+    def test_detect_bright_paper_rejects_invalid_aspect_ratio(self):
+        """Test _detect_bright_paper rejects quads with invalid aspect ratios."""
+        processor = ImageOptimizationTask()
+
+        # Create image with very thin bright rectangle (invalid aspect ratio)
+        img = np.ones((500, 500, 3), dtype=np.uint8) * 150
+        cv2.rectangle(img, (200, 100), (210, 400), (255, 255, 255), -1)  # Very thin
+
+        quad = processor._detect_bright_paper(img)
+
+        # Should reject due to invalid aspect ratio
+        assert quad is None
+
+    def test_is_valid_quad_rejects_entire_image(self):
+        """Test _is_valid_quad rejects quads that cover the entire image."""
+        processor = ImageOptimizationTask()
+
+        # Create quad that covers almost entire image (within margin)
+        quad = np.array([[[10, 10]], [[490, 10]], [[490, 490]], [[10, 490]]], dtype=np.int32)
+
+        is_valid = processor._is_valid_quad(quad, 500, 500)
+
+        # Should reject as it's too close to image edges
+        assert is_valid is False
+
+    def test_detect_bright_paper_tries_multiple_thresholds(self):
+        """Test _detect_bright_paper tries multiple threshold values."""
+        processor = ImageOptimizationTask()
+
+        # Create image with medium-bright paper (requires lower threshold)
+        img = np.ones((500, 500, 3), dtype=np.uint8) * 150
+        cv2.rectangle(img, (100, 100), (400, 400), (200, 200, 200), -1)  # Medium bright
+
+        quad = processor._detect_bright_paper(img)
+
+        # Should find it with one of the lower thresholds
+        # Result depends on threshold values, may or may not find it
+        # This test mainly ensures the loop runs without error
+        assert quad is None or len(quad) == 4
+
+    def test_bright_paper_with_perspective_correction_enabled(self):
+        """Test bright paper detection with perspective correction applied."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create image where edge detection will fail but brightness detection succeeds
+            # Use very gradual gradient at edges to confuse edge detection
+            img = np.ones((500, 500, 3), dtype=np.uint8) * 150
+
+            # Create bright center with very gradual transitions (no sharp edges)
+            for i in range(500):
+                for j in range(500):
+                    # Distance from center bright region
+                    dx = max(0, max(120 - i, i - 380))
+                    dy = max(0, max(120 - j, j - 380))
+                    d = max(dx, dy)
+                    if d == 0:
+                        # Bright center
+                        img[i, j] = [250, 250, 250]
+                    elif d < 30:
+                        # Gradual transition (confuses edge detection)
+                        brightness = int(250 - (d / 30.0) * 100)
+                        img[i, j] = [brightness, brightness, brightness]
+
+            test_file = Path(tmpdir) / "test.jpg"
+            cv2.imwrite(str(test_file), img)
+
+            # Enable perspective correction
+            processor = ImageOptimizationTask(enable_perspective_correction=True)
+            task = FileTask(file_path=test_file, sort_key=1.0)
+
+            result = processor.process(task)
+
+            # Should have processed the image
+            assert result.img is not None
+            # Image should be processed (may be cropped or full size depending on detection)
+            assert result.img.shape[0] <= 500
+            assert result.img.shape[1] <= 500

@@ -6,9 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **CRITICAL: Always ensure these 4 requirements before completing any task:**
 
-1. ✅ **100% Line and Branch Coverage** (Target: 99%+)
+1. ✅ **100% Line and Branch Coverage** (Target: 99%+ per file)
    - Run: `pytest tests/ --cov=tasks --cov=pipeline --cov-branch`
+   - **Each individual file** must have 99%+ coverage (line and branch)
+   - Overall coverage must be 99%+
    - Must have comprehensive tests for all code paths
+   - Check coverage report to ensure no file falls below 99%
 
 2. ✅ **Code Quality Checks Pass**
    - **Flake8**: `flake8 main.py pipeline/ tasks/ --max-line-length=120 --extend-ignore=E203,W503`
@@ -27,6 +30,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 4. ✅ **Main.py Runs Successfully**
    - Test: `python main.py -i samples/ -e png --no-ocr -o test.pdf`
    - Must complete without errors and show proper logging
+   - Verify "PDF saved successfully" message appears
 
 **Before marking any task complete, verify all 4 requirements are met.**
 

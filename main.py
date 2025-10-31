@@ -96,8 +96,8 @@ def _run_pipeline(builder: PipelineBuilder, config, files: list) -> None:
     monitor.stop()
     monitor.join(timeout=5)  # Wait up to 5 seconds for monitor to finish
 
-    # Small delay to ensure final logs are visible after Rich Live display exits
-    time.sleep(0.1)
+    # Delay to ensure Rich Live display fully exits before final logs
+    time.sleep(0.5)
 
     # Log completion status
     logging.info(f"Pipeline completed. Processed {len(files)} file(s).")
@@ -143,8 +143,6 @@ def main_with_config(config_path: str, args) -> None:
         logging.info("Pipeline not started - no files to process")
         return
 
-    logging.info(f"Found {len(files)} file(s) to process")
-
     # Run the pipeline
     _run_pipeline(builder, config, files)
 
@@ -173,7 +171,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    logging.info(f"Using config-based pipeline: {args.config}")
+    logging.debug(f"Using config-based pipeline: {args.config}")
     main_with_config(args.config, args)
 
 

@@ -60,8 +60,10 @@ class WorkflowMonitor(threading.Thread):
                     elif w.current_task is not None:
                         self._last_idle_logged[w.name] = False
 
-        # Final update before exit
-        live.update(self.render())
+            # Final update before exiting Live context
+            live.update(self.render())
+
+        # Log final status after Live context has exited (prevents overwriting)
         for w in self.workers:
             current = str(w.current_task) if w.current_task else "-"
             logger.debug(
