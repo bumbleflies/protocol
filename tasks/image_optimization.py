@@ -198,9 +198,7 @@ class ImageOptimizationTask(TaskProcessor):
         maxHeight = max(int(heightA), int(heightB))
 
         # Destination points for the perspective transform (rectangular)
-        dst = np.array(
-            [[0, 0], [maxWidth - 1, 0], [maxWidth - 1, maxHeight - 1], [0, maxHeight - 1]], dtype="float32"
-        )
+        dst = np.array([[0, 0], [maxWidth - 1, 0], [maxWidth - 1, maxHeight - 1], [0, maxHeight - 1]], dtype="float32")
 
         # Calculate perspective transform matrix and apply it
         M = cv2.getPerspectiveTransform(pts, dst)

@@ -2,6 +2,34 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Quality Requirements
+
+**CRITICAL: Always ensure these 4 requirements before completing any task:**
+
+1. ✅ **100% Line and Branch Coverage** (Target: 99%+)
+   - Run: `pytest tests/ --cov=tasks --cov=pipeline --cov-branch`
+   - Must have comprehensive tests for all code paths
+
+2. ✅ **Code Quality Checks Pass**
+   - **Flake8**: `flake8 main.py pipeline/ tasks/ --max-line-length=120 --extend-ignore=E203,W503`
+     - No complexity violations (C901), no unused imports (F401)
+   - **Black**: `black --check tasks/ pipeline/ tests/ main.py`
+     - Code must be formatted according to Black style
+   - **Mypy**: `mypy tasks/ pipeline/ --ignore-missing-imports --no-strict-optional`
+     - Type checking must pass with no errors
+   - All linter rules must pass
+
+3. ✅ **GitHub Workflows Valid**
+   - All workflow YAML files must be syntactically correct
+   - Run validation: `python -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"`
+   - Validate: ci.yml, semantic-release.yml, release.yml, codeql.yml, dependency-review.yml
+
+4. ✅ **Main.py Runs Successfully**
+   - Test: `python main.py -i samples/ -e png --no-ocr -o test.pdf`
+   - Must complete without errors and show proper logging
+
+**Before marking any task complete, verify all 4 requirements are met.**
+
 ## Project Overview
 
 This is a Python-based flipchart OCR pipeline that processes images of flipcharts, performs OCR using NVIDIA's OCR services, and generates annotated PDFs. The project uses a worker-based queue architecture for asynchronous processing.

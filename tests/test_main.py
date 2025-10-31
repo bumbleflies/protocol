@@ -19,9 +19,11 @@ class TestSetupLogging:
         """Test that setup_logging creates file and console handlers."""
         log_file = tmp_path / "test_debug.log"
 
-        with patch("logging.basicConfig") as mock_basic, patch("logging.StreamHandler") as mock_stream, patch(
-            "logging.getLogger"
-        ) as mock_get_logger:
+        with (
+            patch("logging.basicConfig") as mock_basic,
+            patch("logging.StreamHandler") as mock_stream,
+            patch("logging.getLogger") as mock_get_logger,
+        ):
 
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
@@ -44,9 +46,7 @@ class TestMainWithConfig:
 
     def test_main_with_config_missing_file(self):
         """Test main_with_config raises error for missing config file."""
-        args = argparse.Namespace(
-            config="nonexistent.yaml", input=".", extension=".jpg", output=None, no_ocr=False
-        )
+        args = argparse.Namespace(config="nonexistent.yaml", input=".", extension=".jpg", output=None, no_ocr=False)
 
         with pytest.raises(FileNotFoundError, match="Config file not found"):
             main.main_with_config("nonexistent.yaml", args)
@@ -70,13 +70,14 @@ class TestMainWithConfig:
 
         args = argparse.Namespace(config=str(config_file), input=None, extension=".jpg", output=None, no_ocr=False)
 
-        with patch("main.load_dotenv"), patch("main.PipelineBuilder") as mock_builder, patch(
-            "main.FileLoader"
-        ) as mock_loader, patch("main.WorkflowMonitor") as mock_monitor, patch(
-            "os.getenv"
-        ) as mock_getenv, patch(
-            "main._check_input_files"
-        ) as mock_check_files:
+        with (
+            patch("main.load_dotenv"),
+            patch("main.PipelineBuilder") as mock_builder,
+            patch("main.FileLoader") as mock_loader,
+            patch("main.WorkflowMonitor") as mock_monitor,
+            patch("os.getenv") as mock_getenv,
+            patch("main._check_input_files") as mock_check_files,
+        ):
 
             # Mock builder
             mock_builder_instance = MagicMock()
@@ -128,13 +129,14 @@ class TestMainWithConfig:
             no_ocr=False,  # Don't override OCR
         )
 
-        with patch("main.load_dotenv"), patch("main.load_config_from_dict") as mock_load_config, patch(
-            "main.PipelineBuilder"
-        ) as mock_builder, patch("main.FileLoader") as mock_loader, patch(
-            "main.WorkflowMonitor"
-        ) as mock_monitor, patch(
-            "os.getenv"
-        ) as mock_getenv:
+        with (
+            patch("main.load_dotenv"),
+            patch("main.load_config_from_dict") as mock_load_config,
+            patch("main.PipelineBuilder") as mock_builder,
+            patch("main.FileLoader") as mock_loader,
+            patch("main.WorkflowMonitor") as mock_monitor,
+            patch("os.getenv") as mock_getenv,
+        ):
 
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
@@ -187,13 +189,14 @@ class TestMainWithConfig:
             config=str(config_file), input=None, extension=".jpg", output="custom_output.pdf", no_ocr=False
         )
 
-        with patch("main.load_dotenv"), patch("main.load_config_from_dict") as mock_load_config, patch(
-            "main.PipelineBuilder"
-        ) as mock_builder, patch("main.FileLoader") as mock_loader, patch(
-            "main.WorkflowMonitor"
-        ) as mock_monitor, patch(
-            "main._check_input_files"
-        ) as mock_check_files:
+        with (
+            patch("main.load_dotenv"),
+            patch("main.load_config_from_dict") as mock_load_config,
+            patch("main.PipelineBuilder") as mock_builder,
+            patch("main.FileLoader") as mock_loader,
+            patch("main.WorkflowMonitor") as mock_monitor,
+            patch("main._check_input_files") as mock_check_files,
+        ):
 
             # Mock file checking to simulate files existing
             mock_check_files.return_value = (True, [MagicMock()])
@@ -247,11 +250,13 @@ class TestMainWithConfig:
 
         args = argparse.Namespace(config=str(config_file), input=None, extension=".jpg", output=None, no_ocr=True)
 
-        with patch("main.load_dotenv"), patch("main.load_config_from_dict") as mock_load_config, patch(
-            "main.PipelineBuilder"
-        ) as mock_builder, patch("main.FileLoader") as mock_loader, patch(
-            "main.WorkflowMonitor"
-        ) as mock_monitor:
+        with (
+            patch("main.load_dotenv"),
+            patch("main.load_config_from_dict") as mock_load_config,
+            patch("main.PipelineBuilder") as mock_builder,
+            patch("main.FileLoader") as mock_loader,
+            patch("main.WorkflowMonitor") as mock_monitor,
+        ):
 
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
@@ -304,13 +309,16 @@ class TestMainWithConfig:
 
         args = argparse.Namespace(config=str(config_file), input=None, extension=".jpg", output=None, no_ocr=False)
 
-        with patch("main.load_dotenv"), patch("main.load_config_from_dict") as mock_load_config, patch(
-            "main.PipelineBuilder"
-        ) as mock_builder, patch("main.FileLoader") as mock_loader, patch(
-            "main.WorkflowMonitor"
-        ) as mock_monitor, patch("os.getenv") as mock_getenv, patch("logging.warning") as mock_warning, patch(
-            "main._check_input_files"
-        ) as mock_check_files:
+        with (
+            patch("main.load_dotenv"),
+            patch("main.load_config_from_dict") as mock_load_config,
+            patch("main.PipelineBuilder") as mock_builder,
+            patch("main.FileLoader") as mock_loader,
+            patch("main.WorkflowMonitor") as mock_monitor,
+            patch("os.getenv") as mock_getenv,
+            patch("logging.warning") as mock_warning,
+            patch("main._check_input_files") as mock_check_files,
+        ):
 
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
@@ -367,9 +375,11 @@ class TestMain:
             "--no-ocr",
         ]
 
-        with patch("sys.argv", ["main.py"] + test_args), patch("main.setup_logging"), patch(
-            "main.main_with_config"
-        ) as mock_main_config:
+        with (
+            patch("sys.argv", ["main.py"] + test_args),
+            patch("main.setup_logging"),
+            patch("main.main_with_config") as mock_main_config,
+        ):
 
             main.main()
 
@@ -386,9 +396,11 @@ class TestMain:
 
     def test_main_default_args(self):
         """Test that main() uses default arguments."""
-        with patch("sys.argv", ["main.py"]), patch("main.setup_logging"), patch(
-            "main.main_with_config"
-        ) as mock_main_config:
+        with (
+            patch("sys.argv", ["main.py"]),
+            patch("main.setup_logging"),
+            patch("main.main_with_config") as mock_main_config,
+        ):
 
             main.main()
 
@@ -402,9 +414,7 @@ class TestMain:
 
     def test_main_calls_setup_logging(self):
         """Test that main() calls setup_logging."""
-        with patch("sys.argv", ["main.py"]), patch("main.setup_logging") as mock_setup, patch(
-            "main.main_with_config"
-        ):
+        with patch("sys.argv", ["main.py"]), patch("main.setup_logging") as mock_setup, patch("main.main_with_config"):
 
             main.main()
 
@@ -430,16 +440,16 @@ class TestIntegration:
         with open(config_file, "w") as f:
             yaml.dump(config_data, f)
 
-        args = argparse.Namespace(
-            config=str(config_file), input=".", extension=".jpg", output=None, no_ocr=True
-        )
+        args = argparse.Namespace(config=str(config_file), input=".", extension=".jpg", output=None, no_ocr=True)
 
         # Mock to prevent actual pipeline execution
-        with patch("main.load_dotenv"), patch("main.FileLoader") as mock_loader, patch(
-            "main.WorkflowMonitor"
-        ) as mock_monitor, patch("main.PipelineBuilder") as mock_builder, patch(
-            "main._check_input_files"
-        ) as mock_check_files:
+        with (
+            patch("main.load_dotenv"),
+            patch("main.FileLoader") as mock_loader,
+            patch("main.WorkflowMonitor") as mock_monitor,
+            patch("main.PipelineBuilder") as mock_builder,
+            patch("main._check_input_files") as mock_check_files,
+        ):
 
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
