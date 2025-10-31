@@ -29,11 +29,7 @@ class TestPDFSaveTask:
 
         # Create a FileTask with an image
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img)
 
         result = processor.process(file_task)
 
@@ -46,10 +42,7 @@ class TestPDFSaveTask:
         processor = PDFSaveTask(output_path="output.pdf")
 
         # Create a FileTask without an image
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0)
 
         result = processor.process(file_task)
 
@@ -128,22 +121,10 @@ class TestPDFSaveTask:
 
             # Create OCR boxes
             ocr_boxes = [
-                OCRBox(
-                    label="Test Text",
-                    confidence=0.9,
-                    x1=10, y1=10,
-                    x2=100, y2=10,
-                    x3=100, y3=50,
-                    x4=10, y4=50
-                )
+                OCRBox(label="Test Text", confidence=0.9, x1=10, y1=10, x2=100, y2=10, x3=100, y3=50, x4=10, y4=50)
             ]
 
-            task = FileTask(
-                file_path=Path("test.jpg"),
-                sort_key=1.0,
-                img=img,
-                ocr_boxes=ocr_boxes
-            )
+            task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img, ocr_boxes=ocr_boxes)
 
             processor.process(task)
             processor.finalize()
@@ -165,19 +146,18 @@ class TestPDFSaveTask:
                 OCRBox(
                     label="Low Confidence",
                     confidence=0.3,  # Below 0.5 threshold
-                    x1=10, y1=10,
-                    x2=100, y2=10,
-                    x3=100, y3=50,
-                    x4=10, y4=50
+                    x1=10,
+                    y1=10,
+                    x2=100,
+                    y2=10,
+                    x3=100,
+                    y3=50,
+                    x4=10,
+                    y4=50,
                 )
             ]
 
-            task = FileTask(
-                file_path=Path("test.jpg"),
-                sort_key=1.0,
-                img=img,
-                ocr_boxes=ocr_boxes
-            )
+            task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img, ocr_boxes=ocr_boxes)
 
             processor.process(task)
 
@@ -200,19 +180,18 @@ class TestPDFSaveTask:
                 OCRBox(
                     label="Test",
                     confidence=0.9,
-                    x1=-1000, y1=-1000,  # Invalid coordinates
-                    x2=-900, y2=-1000,
-                    x3=-900, y3=-950,
-                    x4=-1000, y4=-950
+                    x1=-1000,
+                    y1=-1000,  # Invalid coordinates
+                    x2=-900,
+                    y2=-1000,
+                    x3=-900,
+                    y3=-950,
+                    x4=-1000,
+                    y4=-950,
                 )
             ]
 
-            task = FileTask(
-                file_path=Path("test.jpg"),
-                sort_key=1.0,
-                img=img,
-                ocr_boxes=ocr_boxes
-            )
+            task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img, ocr_boxes=ocr_boxes)
 
             processor.process(task)
             processor.finalize()
@@ -249,21 +228,11 @@ class TestPDFSaveTask:
             # Create OCR box with empty label
             ocr_boxes = [
                 OCRBox(
-                    label="",  # Empty label
-                    confidence=0.9,
-                    x1=10, y1=10,
-                    x2=100, y2=10,
-                    x3=100, y3=50,
-                    x4=10, y4=50
+                    label="", confidence=0.9, x1=10, y1=10, x2=100, y2=10, x3=100, y3=50, x4=10, y4=50  # Empty label
                 )
             ]
 
-            task = FileTask(
-                file_path=Path("test.jpg"),
-                sort_key=1.0,
-                img=img,
-                ocr_boxes=ocr_boxes
-            )
+            task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img, ocr_boxes=ocr_boxes)
 
             processor.process(task)
             processor.finalize()
@@ -282,40 +251,16 @@ class TestPDFSaveTask:
             img2 = np.zeros((200, 200, 3), dtype=np.uint8)
 
             ocr_boxes1 = [
-                OCRBox(
-                    label="Page 1",
-                    confidence=0.9,
-                    x1=10, y1=10,
-                    x2=100, y2=10,
-                    x3=100, y3=50,
-                    x4=10, y4=50
-                )
+                OCRBox(label="Page 1", confidence=0.9, x1=10, y1=10, x2=100, y2=10, x3=100, y3=50, x4=10, y4=50)
             ]
 
             ocr_boxes2 = [
-                OCRBox(
-                    label="Page 2",
-                    confidence=0.85,
-                    x1=50, y1=50,
-                    x2=150, y2=50,
-                    x3=150, y3=90,
-                    x4=50, y4=90
-                )
+                OCRBox(label="Page 2", confidence=0.85, x1=50, y1=50, x2=150, y2=50, x3=150, y3=90, x4=50, y4=90)
             ]
 
-            task1 = FileTask(
-                file_path=Path("test1.jpg"),
-                sort_key=1.0,
-                img=img1,
-                ocr_boxes=ocr_boxes1
-            )
+            task1 = FileTask(file_path=Path("test1.jpg"), sort_key=1.0, img=img1, ocr_boxes=ocr_boxes1)
 
-            task2 = FileTask(
-                file_path=Path("test2.jpg"),
-                sort_key=2.0,
-                img=img2,
-                ocr_boxes=ocr_boxes2
-            )
+            task2 = FileTask(file_path=Path("test2.jpg"), sort_key=2.0, img=img2, ocr_boxes=ocr_boxes2)
 
             processor.process(task1)
             processor.process(task2)

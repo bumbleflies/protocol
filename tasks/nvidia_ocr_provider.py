@@ -176,10 +176,7 @@ class NvidiaOCRProvider(OCRProvider):
                 # Sort by top-down, left-right order
                 ocr_boxes.sort(key=lambda b: (b.y1, b.x1))
                 ocr_text = " ".join([b.label for b in ocr_boxes])
-                logger.debug(
-                    f"OCR extracted {len(ocr_boxes)} boxes for asset {asset_id}: "
-                    f"'{ocr_text[:80]}...'"
-                )
+                logger.debug(f"OCR extracted {len(ocr_boxes)} boxes for asset {asset_id}: " f"'{ocr_text[:80]}...'")
 
             except Exception as e:
                 logger.exception(f"Failed to parse OCR response JSON for asset {asset_id}: {e}")

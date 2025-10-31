@@ -7,6 +7,7 @@ class TaskConfig:
     """
     Configuration for a single task in the pipeline.
     """
+
     name: str
     task_type: str  # Registry name or fully qualified class name
     params: Dict[str, Any] = field(default_factory=dict)
@@ -22,6 +23,7 @@ class PipelineConfig:
     Complete pipeline configuration.
     Defines the sequence of tasks and their parameters.
     """
+
     tasks: List[TaskConfig]
     input_dir: str = "."
     extension: str = ".jpg"
@@ -54,12 +56,7 @@ def load_config_from_dict(data: Dict[str, Any]) -> PipelineConfig:
         config = load_config_from_dict(data)
     """
     tasks = [
-        TaskConfig(
-            name=t["name"],
-            task_type=t["task_type"],
-            params=t.get("params", {})
-        )
-        for t in data.get("tasks", [])
+        TaskConfig(name=t["name"], task_type=t["task_type"], params=t.get("params", {})) for t in data.get("tasks", [])
     ]
 
     return PipelineConfig(
@@ -67,5 +64,5 @@ def load_config_from_dict(data: Dict[str, Any]) -> PipelineConfig:
         input_dir=data.get("input_dir", "."),
         extension=data.get("extension", ".jpg"),
         output_file=data.get("output_file", "combined.pdf"),
-        enable_ocr=data.get("enable_ocr", True)
+        enable_ocr=data.get("enable_ocr", True),
     )

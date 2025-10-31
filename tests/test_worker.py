@@ -1,6 +1,7 @@
 """
 Tests for Worker and its interaction with TaskProcessor.
 """
+
 import pytest
 import queue
 import time
@@ -162,6 +163,7 @@ class TestWorkerWithTaskProcessor:
 
     def test_worker_error_handling(self):
         """Test that worker handles processor errors gracefully."""
+
         class FailingProcessor(TaskProcessor):
             def process(self, task: FileTask) -> FileTask:
                 raise RuntimeError("Test error")

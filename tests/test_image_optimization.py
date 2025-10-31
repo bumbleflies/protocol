@@ -29,10 +29,7 @@ class TestImageOptimizationTask:
     def test_process_nonexistent_file(self):
         """Test process() raises ValueError for nonexistent file."""
         processor = ImageOptimizationTask()
-        file_task = FileTask(
-            file_path=Path("/nonexistent/image.jpg"),
-            sort_key=1.0
-        )
+        file_task = FileTask(file_path=Path("/nonexistent/image.jpg"), sort_key=1.0)
 
         with pytest.raises(ValueError, match="Could not read image"):
             processor.process(file_task)

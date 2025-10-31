@@ -8,6 +8,7 @@ class TaskRegistry:
     Registry for discovering and loading task processors.
     Allows tasks to register themselves and be looked up by name.
     """
+
     _registry: Dict[str, Type[TaskProcessor]] = {}
 
     @classmethod
@@ -20,11 +21,13 @@ class TaskRegistry:
             class MyTask(TaskProcessor):
                 pass
         """
+
         def decorator(task_class: Type[TaskProcessor]):
             if name in cls._registry:
                 raise ValueError(f"Task '{name}' is already registered")
             cls._registry[name] = task_class
             return task_class
+
         return decorator
 
     @classmethod

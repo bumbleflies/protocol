@@ -1,6 +1,7 @@
 """
 Tests for TaskProcessor base classes and LSP compliance.
 """
+
 import pytest
 import numpy as np
 from pathlib import Path
@@ -79,6 +80,7 @@ class TestTaskProcessor:
         Test LSP: FinalizableTaskProcessor can be used wherever TaskProcessor is expected.
         This tests the Liskov Substitution Principle.
         """
+
         def process_with_processor(processor: TaskProcessor, task: FileTask) -> FileTask:
             """Function that expects TaskProcessor."""
             return processor.process(task)
@@ -110,16 +112,9 @@ class TestFileTask:
 
     def test_file_task_with_ocr_boxes(self):
         """Test FileTask with OCR boxes."""
-        box = OCRBox(
-            label="Test", x1=0, y1=0, x2=10, y2=0,
-            x3=10, y3=10, x4=0, y4=10, confidence=0.9
-        )
+        box = OCRBox(label="Test", x1=0, y1=0, x2=10, y2=0, x3=10, y3=10, x4=0, y4=10, confidence=0.9)
 
-        task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            ocr_boxes=[box]
-        )
+        task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, ocr_boxes=[box])
 
         assert len(task.ocr_boxes) == 1
         assert task.ocr_boxes[0].label == "Test"

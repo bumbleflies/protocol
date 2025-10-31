@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 
 class Worker(threading.Thread):
     def __init__(
-            self,
-            name: str,
-            input_q: Queue[Union[FileTask, FinalizeTask]],
-            output_q: Optional[Queue[FileTask]],
-            process_fn: Union[TaskProcessor, Callable[[Union[FileTask, FinalizeTask]], Union[FileTask, FinalizeTask]]]
+        self,
+        name: str,
+        input_q: Queue[Union[FileTask, FinalizeTask]],
+        output_q: Optional[Queue[FileTask]],
+        process_fn: Union[TaskProcessor, Callable[[Union[FileTask, FinalizeTask]], Union[FileTask, FinalizeTask]]],
     ) -> None:
         super().__init__(daemon=True, name=name)
         self.name: str = name

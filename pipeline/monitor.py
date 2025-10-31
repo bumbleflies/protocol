@@ -11,6 +11,7 @@ from .worker import Worker
 
 logger = logging.getLogger(__name__)
 
+
 class WorkflowMonitor(threading.Thread):
     def __init__(self, workers: List[Worker], refresh_interval: float = 0.5) -> None:
         super().__init__(daemon=True, name="WorkflowMonitor")
@@ -50,8 +51,7 @@ class WorkflowMonitor(threading.Thread):
                 for w in self.workers:
                     current = str(w.current_task) if w.current_task else "-"
                     logger.debug(
-                        f"Worker '{w.name}': Processing={current}, "
-                        f"Queued={w.input_q.qsize()}, Done={w.done_count}"
+                        f"Worker '{w.name}': Processing={current}, " f"Queued={w.input_q.qsize()}, Done={w.done_count}"
                     )
                     # Log idle once when it becomes idle
                     if w.current_task is None and not self._last_idle_logged[w.name]:
@@ -65,6 +65,5 @@ class WorkflowMonitor(threading.Thread):
         for w in self.workers:
             current = str(w.current_task) if w.current_task else "-"
             logger.debug(
-                f"[FINAL] Worker '{w.name}': Processing={current}, "
-                f"Queued={w.input_q.qsize()}, Done={w.done_count}"
+                f"[FINAL] Worker '{w.name}': Processing={current}, " f"Queued={w.input_q.qsize()}, Done={w.done_count}"
             )

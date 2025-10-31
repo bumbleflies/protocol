@@ -41,10 +41,7 @@ class UploadTask(TaskProcessor):
         logger.debug(f"Uploading image for task: {task.file_path}")
         try:
             _, img_bytes = cv2.imencode(".jpg", task.img)
-            task.asset_id = self.uploader.upload(
-                img_bytes.tobytes(),
-                f"{task.file_path.name}"
-            )
+            task.asset_id = self.uploader.upload(img_bytes.tobytes(), f"{task.file_path.name}")
             logger.debug(f"Upload completed for {task.file_path.name}, asset_id={task.asset_id}")
         except Exception as e:
             logger.exception(f"UploadTask failed for {task.file_path}: {e}")

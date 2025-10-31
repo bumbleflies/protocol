@@ -36,11 +36,7 @@ class TestUploadTask:
 
         # Create test FileTask with image
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img)
 
         # Process
         result = processor.process(file_task)
@@ -64,11 +60,7 @@ class TestUploadTask:
 
         # Create test FileTask with image
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.png"),
-            sort_key=1.0,
-            img=img
-        )
+        file_task = FileTask(file_path=Path("test.png"), sort_key=1.0, img=img)
 
         # Process
         processor.process(file_task)
@@ -91,11 +83,7 @@ class TestUploadTask:
 
         # Create test FileTask
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img)
 
         # Process with debug logging
         with caplog.at_level(logging.DEBUG):
@@ -116,11 +104,7 @@ class TestUploadTask:
 
         # Create test FileTask
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img)
 
         # Process should raise exception
         with pytest.raises(Exception, match="Upload failed"):
@@ -141,11 +125,7 @@ class TestUploadTask:
 
         # Create test FileTask
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=5.0,
-            img=img
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=5.0, img=img)
 
         # Process
         result = processor.process(file_task)
@@ -169,16 +149,7 @@ class TestOCRTask:
         """Test process() performs OCR and sets ocr_boxes."""
         # Create mock provider
         mock_provider = Mock(spec=OCRProvider)
-        test_boxes = [
-            OCRBox(
-                label="Test",
-                confidence=0.9,
-                x1=10, y1=10,
-                x2=100, y2=10,
-                x3=100, y3=50,
-                x4=10, y4=50
-            )
-        ]
+        test_boxes = [OCRBox(label="Test", confidence=0.9, x1=10, y1=10, x2=100, y2=10, x3=100, y3=50, x4=10, y4=50)]
         mock_provider.detect_text.return_value = test_boxes
 
         # Create processor
@@ -186,12 +157,7 @@ class TestOCRTask:
 
         # Create test FileTask with asset_id
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img,
-            asset_id=uuid4()
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img, asset_id=uuid4())
 
         # Process
         result = processor.process(file_task)
@@ -215,11 +181,7 @@ class TestOCRTask:
 
         # Create test FileTask WITHOUT asset_id
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img)
 
         # Process should raise ValueError
         with pytest.raises(ValueError, match="has no asset_id"):
@@ -238,11 +200,7 @@ class TestOCRTask:
 
         # Create test FileTask with None asset_id
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img)
         file_task.asset_id = None
 
         # Process should raise ValueError
@@ -261,12 +219,7 @@ class TestOCRTask:
 
         # Create test FileTask
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img,
-            asset_id=uuid4()
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img, asset_id=uuid4())
 
         # Process with debug logging
         with caplog.at_level(logging.DEBUG):
@@ -288,12 +241,7 @@ class TestOCRTask:
 
         # Create test FileTask
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img,
-            asset_id=uuid4()
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img, asset_id=uuid4())
 
         # Process should raise exception
         with pytest.raises(Exception, match="OCR failed"):
@@ -314,12 +262,7 @@ class TestOCRTask:
 
         # Create test FileTask
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=5.0,
-            img=img,
-            asset_id=uuid4()
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=5.0, img=img, asset_id=uuid4())
 
         # Process
         result = processor.process(file_task)
@@ -339,12 +282,7 @@ class TestOCRTask:
 
         # Create test FileTask
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img,
-            asset_id=uuid4()
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img, asset_id=uuid4())
 
         # Process
         result = processor.process(file_task)
@@ -368,12 +306,7 @@ class TestOCRTask:
 
         # Create test FileTask
         img = np.zeros((100, 100, 3), dtype=np.uint8)
-        file_task = FileTask(
-            file_path=Path("test.jpg"),
-            sort_key=1.0,
-            img=img,
-            asset_id=uuid4()
-        )
+        file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img, asset_id=uuid4())
 
         # Process
         result = processor.process(file_task)

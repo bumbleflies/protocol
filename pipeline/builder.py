@@ -68,12 +68,7 @@ class PipelineBuilder:
             input_q = queues[i]
             output_q = queues[i + 1] if i < len(self.config.tasks) else None
 
-            worker = Worker(
-                name=task_cfg.name,
-                input_q=input_q,
-                output_q=output_q,
-                process_fn=processor
-            )
+            worker = Worker(name=task_cfg.name, input_q=input_q, output_q=output_q, process_fn=processor)
             workers.append(worker)
             logger.debug(f"Created worker: {task_cfg.name}")
 
@@ -111,10 +106,7 @@ class PipelineBuilder:
             logger.debug(f"Instantiated task: {task_cfg.name}")
             return instance
         except TypeError as e:
-            raise TypeError(
-                f"Failed to instantiate task '{task_cfg.name}' "
-                f"of type '{task_cfg.task_type}': {e}"
-            )
+            raise TypeError(f"Failed to instantiate task '{task_cfg.name}' " f"of type '{task_cfg.task_type}': {e}")
 
     def _import_task_class(self, class_path: str):
         """
@@ -134,9 +126,7 @@ class PipelineBuilder:
             module = importlib.import_module(module_path)
             return getattr(module, class_name)
         except (ValueError, ImportError, AttributeError) as e:
-            raise ImportError(
-                f"Could not import task class '{class_path}': {e}"
-            )
+            raise ImportError(f"Could not import task class '{class_path}': {e}")
 
     def _resolve_params(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """

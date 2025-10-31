@@ -42,10 +42,7 @@ class ImageOptimizationTask(TaskProcessor):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # Adaptive threshold to highlight text/drawings
-        thresh = cv2.adaptiveThreshold(
-            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY_INV, 15, 10
-        )
+        thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 10)
 
         # Dilate to connect edges
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))

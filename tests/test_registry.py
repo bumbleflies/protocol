@@ -1,6 +1,7 @@
 """
 Tests for TaskRegistry (OCP compliance).
 """
+
 import pytest
 
 from tasks.registry import TaskRegistry
@@ -28,6 +29,7 @@ class TestTaskRegistry:
 
     def test_register_task(self):
         """Test registering a task in the registry."""
+
         @TaskRegistry.register("test_task")
         class TestTask(TaskProcessor):
             def process(self, task: FileTask) -> FileTask:
@@ -37,6 +39,7 @@ class TestTaskRegistry:
 
     def test_get_registered_task(self):
         """Test retrieving a registered task."""
+
         @TaskRegistry.register("dummy")
         class DummyTestTask(TaskProcessor):
             def process(self, task: FileTask) -> FileTask:
@@ -55,12 +58,14 @@ class TestTaskRegistry:
 
     def test_register_duplicate_name_raises_error(self):
         """Test that registering the same name twice raises error."""
+
         @TaskRegistry.register("duplicate")
         class Task1(TaskProcessor):
             def process(self, task: FileTask) -> FileTask:
                 return task
 
         with pytest.raises(ValueError) as exc_info:
+
             @TaskRegistry.register("duplicate")
             class Task2(TaskProcessor):
                 def process(self, task: FileTask) -> FileTask:
@@ -70,6 +75,7 @@ class TestTaskRegistry:
 
     def test_list_tasks(self):
         """Test listing all registered tasks."""
+
         @TaskRegistry.register("task1")
         class Task1(TaskProcessor):
             def process(self, task: FileTask) -> FileTask:
@@ -87,6 +93,7 @@ class TestTaskRegistry:
 
     def test_clear_registry(self):
         """Test clearing the registry."""
+
         @TaskRegistry.register("temp_task")
         class TempTask(TaskProcessor):
             def process(self, task: FileTask) -> FileTask:
@@ -103,6 +110,7 @@ class TestTaskRegistry:
         Test OCP: New tasks can be added without modifying existing code.
         This demonstrates Open/Closed Principle compliance.
         """
+
         # Register first task
         @TaskRegistry.register("existing_task")
         class ExistingTask(TaskProcessor):

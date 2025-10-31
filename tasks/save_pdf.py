@@ -77,12 +77,7 @@ class PDFSaveTask(FinalizableTaskProcessor):
         temp_pdf_path.unlink(missing_ok=True)
         logger.info(f"Annotated PDF saved to {self.output_path}")
 
-    def _add_annotations(
-            self,
-            pdf_path: Path,
-            output_path: Path,
-            tasks: List[FileTask]
-    ) -> None:
+    def _add_annotations(self, pdf_path: Path, output_path: Path, tasks: List[FileTask]) -> None:
         """Add static text annotations (like sticky notes) to the PDF."""
         reader = PdfReader(str(pdf_path))
         writer = PdfWriter()
@@ -100,7 +95,7 @@ class PDFSaveTask(FinalizableTaskProcessor):
 
             for box in task.ocr_boxes:
                 if box.confidence < 0.5:
-                    logger.debug(f'Skipping low confidence annotation {box}')
+                    logger.debug(f"Skipping low confidence annotation {box}")
                     continue  # skip low-confidence boxes
                 # Calculate bounding rectangle
                 x_coords = [box.x1, box.x2, box.x3, box.x4]
@@ -114,17 +109,14 @@ class PDFSaveTask(FinalizableTaskProcessor):
                 rect = RectangleObject((xLL, yLL, xUR, yUR))
 
                 try:
-                    logger.debug(f'Adding annotation {box}')
+                    logger.debug(f"Adding annotation {box}")
                     # Add static text annotation
                     annotation = Text(
                         rect=rect,
                         text=box.label or "",
                         open=False,  # collapsed by default
                     )
-                    writer.add_annotation(
-                        page_number=page_idx,
-                        annotation=annotation
-                    )
+                    writer.add_annotation(page_number=page_idx, annotation=annotation)
 
                 except Exception as e:
                     logger.warning(f"Failed to add annotation for {task.file_path}: {e}")

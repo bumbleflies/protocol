@@ -1,6 +1,7 @@
 """
 Tests for PipelineBuilder and configuration system.
 """
+
 import pytest
 from pathlib import Path
 
@@ -26,11 +27,7 @@ class TestPipelineConfig:
 
     def test_task_config_creation(self):
         """Test creating a TaskConfig."""
-        config = TaskConfig(
-            name="test",
-            task_type="test_task",
-            params={"key": "value"}
-        )
+        config = TaskConfig(name="test", task_type="test_task", params={"key": "value"})
 
         assert config.name == "test"
         assert config.task_type == "test_task"
@@ -45,11 +42,7 @@ class TestPipelineConfig:
     def test_pipeline_config_creation(self):
         """Test creating a PipelineConfig."""
         task_cfg = TaskConfig(name="task1", task_type="type1")
-        config = PipelineConfig(
-            tasks=[task_cfg],
-            input_dir="images/",
-            extension=".png"
-        )
+        config = PipelineConfig(tasks=[task_cfg], input_dir="images/", extension=".png")
 
         assert len(config.tasks) == 1
         assert config.input_dir == "images/"
@@ -67,11 +60,11 @@ class TestPipelineConfig:
         data = {
             "tasks": [
                 {"name": "task1", "task_type": "type1", "params": {"p1": 10}},
-                {"name": "task2", "task_type": "type2"}
+                {"name": "task2", "task_type": "type2"},
             ],
             "input_dir": "test/",
             "extension": ".jpg",
-            "output_file": "output.pdf"
+            "output_file": "output.pdf",
         }
 
         config = load_config_from_dict(data)
@@ -132,11 +125,13 @@ class TestPipelineBuilder:
 
     def test_build_multiple_tasks(self):
         """Test building pipeline with multiple tasks."""
-        config = PipelineConfig(tasks=[
-            TaskConfig(name="task1", task_type="simple_test"),
-            TaskConfig(name="task2", task_type="simple_test"),
-            TaskConfig(name="task3", task_type="simple_test")
-        ])
+        config = PipelineConfig(
+            tasks=[
+                TaskConfig(name="task1", task_type="simple_test"),
+                TaskConfig(name="task2", task_type="simple_test"),
+                TaskConfig(name="task3", task_type="simple_test"),
+            ]
+        )
         builder = PipelineBuilder(config)
 
         workers, queues = builder.build()
@@ -149,6 +144,7 @@ class TestPipelineBuilder:
 
     def test_dependency_injection_with_provider(self):
         """Test dependency injection with registered providers."""
+
         # Register task that takes a parameter
         @TaskRegistry.register("param_task")
         class ParamTask(TaskProcessor):
@@ -159,13 +155,9 @@ class TestPipelineBuilder:
                 return task
 
         mock_provider = "injected_provider"
-        config = PipelineConfig(tasks=[
-            TaskConfig(
-                name="test",
-                task_type="param_task",
-                params={"provider": "@test_provider"}
-            )
-        ])
+        config = PipelineConfig(
+            tasks=[TaskConfig(name="test", task_type="param_task", params={"provider": "@test_provider"})]
+        )
 
         builder = PipelineBuilder(config)
         builder.register_provider("test_provider", mock_provider)
@@ -177,6 +169,7 @@ class TestPipelineBuilder:
 
     def test_dependency_injection_missing_provider_raises_error(self):
         """Test that missing provider raises error."""
+
         @TaskRegistry.register("needs_provider")
         class NeedsProviderTask(TaskProcessor):
             def __init__(self, provider):
@@ -185,13 +178,9 @@ class TestPipelineBuilder:
             def process(self, task: FileTask) -> FileTask:
                 return task
 
-        config = PipelineConfig(tasks=[
-            TaskConfig(
-                name="test",
-                task_type="needs_provider",
-                params={"provider": "@missing_provider"}
-            )
-        ])
+        config = PipelineConfig(
+            tasks=[TaskConfig(name="test", task_type="needs_provider", params={"provider": "@missing_provider"})]
+        )
 
         builder = PipelineBuilder(config)
 
@@ -203,13 +192,7 @@ class TestPipelineBuilder:
 
     def test_task_instantiation_with_params(self):
         """Test that task parameters are passed correctly."""
-        config = PipelineConfig(tasks=[
-            TaskConfig(
-                name="test",
-                task_type="simple_test",
-                params={"value": 42}
-            )
-        ])
+        config = PipelineConfig(tasks=[TaskConfig(name="test", task_type="simple_test", params={"value": 42})])
 
         builder = PipelineBuilder(config)
         workers, queues = builder.build()
@@ -219,9 +202,7 @@ class TestPipelineBuilder:
 
     def test_nonexistent_task_type_raises_error(self):
         """Test that nonexistent task type raises error."""
-        config = PipelineConfig(tasks=[
-            TaskConfig(name="test", task_type="nonexistent_task")
-        ])
+        config = PipelineConfig(tasks=[TaskConfig(name="test", task_type="nonexistent_task")])
 
         builder = PipelineBuilder(config)
 

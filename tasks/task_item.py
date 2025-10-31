@@ -10,6 +10,7 @@ import numpy as np
 @dataclass
 class OCRBox:
     """Represents one OCR-detected text region."""
+
     label: str
     x1: int
     y1: int
@@ -20,6 +21,7 @@ class OCRBox:
     x4: int
     y4: int
     confidence: float
+
 
 @dataclass
 class FileTask:
@@ -33,6 +35,7 @@ class FileTask:
 @dataclass
 class FinalizeTask:
     """Special task to signal the end of the pipeline for PDF generation."""
+
     pass
 
 
