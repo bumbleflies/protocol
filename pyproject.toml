@@ -10,11 +10,10 @@ readme = "README.md"
 authors = [
     {name = "bumbleflies UG", email = "info@bumbleflies.com"}
 ]
-license = {text = "MIT"}
+license = "MIT"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -23,31 +22,31 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "numpy>=2.0.0",
-    "opencv-python>=4.8.0",
-    "opencv-python-headless>=4.8.0",
-    "Pillow>=10.0.0",
-    "pypdf>=4.0.0",
-    "requests>=2.31.0",
-    "rich>=13.0.0",
-    "python-dotenv>=1.0.0",
-    "PyYAML>=6.0.0",
+    "numpy>=2.2.0,<2.3.0",
+    "opencv-python>=4.12.0",
+    "opencv-python-headless>=4.12.0",
+    "Pillow>=12.0.0",
+    "pypdf>=6.1.3",
+    "requests>=2.32.5",
+    "rich>=14.1.0",
+    "python-dotenv>=1.0.1",
+    "PyYAML>=6.0.2",
 ]
 
 [project.optional-dependencies]
 test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-    "pytest-asyncio>=0.21.0",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.14.0",
+    "pytest-asyncio>=1.2.0",
 ]
 dev = [
-    "flake8>=6.0.0",
-    "black>=23.0.0",
-    "mypy>=1.0.0",
-    "pre-commit>=3.0.0",
-    "types-requests>=2.31.0",
-    "types-PyYAML>=6.0.0",
+    "flake8>=7.1.0",
+    "black>=25.9.0",
+    "mypy>=1.18.2",
+    "pre-commit>=4.0.0",
+    "types-requests>=2.32.4",
+    "types-PyYAML>=6.0.12",
 ]
 
 [project.urls]
@@ -55,6 +54,10 @@ Homepage = "https://github.com/bumbleflies/protocol"
 Documentation = "https://github.com/bumbleflies/protocol/blob/main/CLAUDE.md"
 Repository = "https://github.com/bumbleflies/protocol"
 Issues = "https://github.com/bumbleflies/protocol/issues"
+
+[tool.setuptools.packages.find]
+include = ["tasks*", "pipeline*"]
+exclude = ["tests*", "samples*"]
 
 [tool.black]
 line-length = 120
