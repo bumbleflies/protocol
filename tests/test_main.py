@@ -72,7 +72,11 @@ class TestMainWithConfig:
 
         with patch("main.load_dotenv"), patch("main.PipelineBuilder") as mock_builder, patch(
             "main.FileLoader"
-        ) as mock_loader, patch("main.WorkflowMonitor") as mock_monitor, patch("os.getenv") as mock_getenv:
+        ) as mock_loader, patch("main.WorkflowMonitor") as mock_monitor, patch(
+            "os.getenv"
+        ) as mock_getenv, patch(
+            "main._check_input_files"
+        ) as mock_check_files:
 
             # Mock builder
             mock_builder_instance = MagicMock()
@@ -89,6 +93,9 @@ class TestMainWithConfig:
 
             # Mock API key
             mock_getenv.return_value = "test_api_key"
+
+            # Mock file checking to simulate files existing
+            mock_check_files.return_value = (True, [MagicMock()])  # Directory exists, has files
 
             main.main_with_config(str(config_file), args)
 
@@ -157,6 +164,68 @@ class TestMainWithConfig:
             assert call_args["input_dir"] == "override_dir"
             assert call_args["extension"] == ".png"
             assert call_args["output_file"] == "override.pdf"
+
+    def test_main_with_config_output_updates_save_task(self, tmp_path):
+        """Test that -o flag updates both output_file and save_pdf task's output_path."""
+        config_file = tmp_path / "test_config.yaml"
+        config_data = {
+            "tasks": [
+                {"name": "optimize", "task_type": "image_optimization", "params": {}},
+                {"name": "save", "task_type": "save_pdf", "params": {"output_path": "original.pdf"}},
+            ],
+            "input_dir": ".",
+            "extension": ".jpg",
+            "output_file": "original.pdf",
+            "enable_ocr": False,
+        }
+
+        with open(config_file, "w") as f:
+            yaml.dump(config_data, f)
+
+        # CLI args with custom output
+        args = argparse.Namespace(
+            config=str(config_file), input=None, extension=".jpg", output="custom_output.pdf", no_ocr=False
+        )
+
+        with patch("main.load_dotenv"), patch("main.load_config_from_dict") as mock_load_config, patch(
+            "main.PipelineBuilder"
+        ) as mock_builder, patch("main.FileLoader") as mock_loader, patch(
+            "main.WorkflowMonitor"
+        ) as mock_monitor, patch(
+            "main._check_input_files"
+        ) as mock_check_files:
+
+            # Mock file checking to simulate files existing
+            mock_check_files.return_value = (True, [MagicMock()])
+
+            mock_builder_instance = MagicMock()
+            mock_builder.return_value = mock_builder_instance
+            mock_builder_instance.build.return_value = ([], [MagicMock()])
+
+            mock_loader_instance = MagicMock()
+            mock_loader.return_value = mock_loader_instance
+
+            mock_monitor_instance = MagicMock()
+            mock_monitor.return_value = mock_monitor_instance
+
+            # Mock config loading
+            mock_config = MagicMock()
+            mock_config.input_dir = "."
+            mock_config.extension = ".jpg"
+            mock_load_config.return_value = mock_config
+
+            main.main_with_config(str(config_file), args)
+
+            # Verify load_config_from_dict was called
+            mock_load_config.assert_called_once()
+            call_args = mock_load_config.call_args[0][0]
+
+            # Check output_file was updated
+            assert call_args["output_file"] == "custom_output.pdf"
+
+            # Check save_pdf task's output_path was also updated
+            save_task = next(t for t in call_args["tasks"] if t["task_type"] == "save_pdf")
+            assert save_task["params"]["output_path"] == "custom_output.pdf"
 
     def test_main_with_config_no_ocr_flag(self, tmp_path):
         """Test that --no-ocr flag removes upload and ocr tasks."""
@@ -239,7 +308,9 @@ class TestMainWithConfig:
             "main.PipelineBuilder"
         ) as mock_builder, patch("main.FileLoader") as mock_loader, patch(
             "main.WorkflowMonitor"
-        ) as mock_monitor, patch("os.getenv") as mock_getenv, patch("logging.warning") as mock_warning:
+        ) as mock_monitor, patch("os.getenv") as mock_getenv, patch("logging.warning") as mock_warning, patch(
+            "main._check_input_files"
+        ) as mock_check_files:
 
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
@@ -258,6 +329,9 @@ class TestMainWithConfig:
             mock_config.input_dir = "."
             mock_config.extension = ".jpg"
             mock_load_config.return_value = mock_config
+
+            # Mock file checking to simulate files existing
+            mock_check_files.return_value = (True, [MagicMock()])  # Directory exists, has files
 
             main.main_with_config(str(config_file), args)
 
@@ -363,7 +437,9 @@ class TestIntegration:
         # Mock to prevent actual pipeline execution
         with patch("main.load_dotenv"), patch("main.FileLoader") as mock_loader, patch(
             "main.WorkflowMonitor"
-        ) as mock_monitor, patch("main.PipelineBuilder") as mock_builder:
+        ) as mock_monitor, patch("main.PipelineBuilder") as mock_builder, patch(
+            "main._check_input_files"
+        ) as mock_check_files:
 
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
@@ -378,6 +454,9 @@ class TestIntegration:
 
             mock_monitor_instance = MagicMock()
             mock_monitor.return_value = mock_monitor_instance
+
+            # Mock file checking to simulate files existing
+            mock_check_files.return_value = (True, [MagicMock()])  # Directory exists, has files
 
             # Should execute without errors
             main.main_with_config(str(config_file), args)
@@ -394,3 +473,4 @@ class TestIntegration:
             # Verify monitor was started and stopped
             mock_monitor_instance.start.assert_called_once()
             mock_monitor_instance.stop.assert_called_once()
+            mock_monitor_instance.join.assert_called_once()

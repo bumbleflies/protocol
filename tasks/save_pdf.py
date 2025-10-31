@@ -75,7 +75,7 @@ class PDFSaveTask(FinalizableTaskProcessor):
         # Add annotations with pypdf
         self._add_annotations(temp_pdf_path, self.output_path, sorted_tasks)
         temp_pdf_path.unlink(missing_ok=True)
-        logger.info(f"Annotated PDF saved to {self.output_path}")
+        logger.info(f"PDF saved successfully: {self.output_path.absolute()}")
 
     def _add_annotations(self, pdf_path: Path, output_path: Path, tasks: List[FileTask]) -> None:
         """Add static text annotations (like sticky notes) to the PDF."""

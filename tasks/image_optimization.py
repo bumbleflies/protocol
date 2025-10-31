@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from typing import Optional, Tuple
+from typing import Optional
 
 from .task_item import FileTask, TaskProcessor
 from .registry import TaskRegistry

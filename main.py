@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -12,6 +13,15 @@ from pipeline.monitor import WorkflowMonitor
 from pipeline.builder import PipelineBuilder
 from pipeline.config import load_config_from_dict
 from tasks.nvidia_ocr_provider import NvidiaAssetUploader, NvidiaOCRProvider
+
+
+def _check_input_files(input_dir: str, extension: str) -> tuple[bool, list]:
+    """Check if input directory has files. Returns (exists, files_list)."""
+    input_path = Path(input_dir)
+    if not input_path.exists():
+        return (False, [])
+    files = list(input_path.glob(f"*{extension}"))
+    return (True, files)
 
 
 def setup_logging(log_file: str = "debug.log") -> None:
@@ -28,34 +38,26 @@ def setup_logging(log_file: str = "debug.log") -> None:
     logging.getLogger("").addHandler(console)
 
 
-def main_with_config(config_path: str, args) -> None:
-    """
-    Configuration-based pipeline implementation.
-    Uses YAML config files and dependency injection.
-    """
-    load_dotenv()
-
-    # Load configuration
-    config_file = Path(config_path)
-    if not config_file.exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
-
-    with open(config_file, "r") as f:
-        config_data = yaml.safe_load(f)
-
-    # Override config with command-line arguments
-    if args.input != ".":
+def _apply_cli_overrides(config_data: dict, args) -> None:
+    """Apply command-line argument overrides to config data."""
+    if args.input and args.input != ".":
         config_data["input_dir"] = args.input
-    if args.extension != ".jpg":
+    if args.extension and args.extension != ".jpg":
         config_data["extension"] = args.extension
     if args.output:
         config_data["output_file"] = args.output
+        # Also update the save task's output_path parameter
+        for task in config_data.get("tasks", []):
+            if task.get("task_type") == "save_pdf":
+                task.setdefault("params", {})["output_path"] = args.output
     if args.no_ocr:
         config_data["enable_ocr"] = False
         # Remove upload and ocr tasks
         config_data["tasks"] = [t for t in config_data["tasks"] if t["name"] not in ["upload", "ocr"]]
 
-    # Check for API key and auto-disable OCR if missing
+
+def _check_and_configure_ocr(config_data: dict) -> str:
+    """Check for API key and auto-disable OCR if missing. Returns API key or empty string."""
     api_key = os.getenv("NVIDIA_API_KEY")
     if not api_key and config_data.get("enable_ocr", True):
         # No API key - automatically skip OCR tasks
@@ -66,31 +68,11 @@ def main_with_config(config_path: str, args) -> None:
         )
         config_data["enable_ocr"] = False
         config_data["tasks"] = [t for t in config_data["tasks"] if t["name"] not in ["upload", "ocr"]]
+    return api_key or ""
 
-    config = load_config_from_dict(config_data)
 
-    # Build pipeline with dependency injection
-    builder = PipelineBuilder(config)
-
-    # Register providers if API key is available
-    if api_key:
-        builder.register_provider("nvidia_uploader", NvidiaAssetUploader(api_key))
-        builder.register_provider("nvidia_ocr", NvidiaOCRProvider(api_key))
-
-    # Check if input directory has files before starting pipeline
-    input_path = Path(config.input_dir)
-    if not input_path.exists():
-        logging.error(f"Input directory not found: {config.input_dir}")
-        return
-
-    files = list(input_path.glob(f"*{config.extension}"))
-    if not files:
-        logging.warning(f"No files with extension '{config.extension}' found in {config.input_dir}")
-        logging.info("Pipeline not started - no files to process")
-        return
-
-    logging.info(f"Found {len(files)} file(s) to process")
-
+def _run_pipeline(builder: PipelineBuilder, config, files: list) -> None:
+    """Execute the pipeline with the given builder and configuration."""
     # Build workers and queues
     workers, queues = builder.build()
 
@@ -114,19 +96,73 @@ def main_with_config(config_path: str, args) -> None:
     monitor.stop()
     monitor.join(timeout=5)  # Wait up to 5 seconds for monitor to finish
 
+    # Small delay to ensure final logs are visible after Rich Live display exits
+    time.sleep(0.1)
+
+    # Log completion status
+    logging.info(f"Pipeline completed. Processed {len(files)} file(s).")
+
+
+def main_with_config(config_path: str, args) -> None:
+    """
+    Configuration-based pipeline implementation.
+    Uses YAML config files and dependency injection.
+    """
+    load_dotenv()
+
+    # Load configuration
+    config_file = Path(config_path)
+    if not config_file.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+
+    with open(config_file, "r") as f:
+        config_data = yaml.safe_load(f)
+
+    # Apply CLI overrides and OCR configuration
+    _apply_cli_overrides(config_data, args)
+    api_key = _check_and_configure_ocr(config_data)
+
+    config = load_config_from_dict(config_data)
+
+    # Build pipeline with dependency injection
+    builder = PipelineBuilder(config)
+
+    # Register providers if API key is available
+    if api_key:
+        builder.register_provider("nvidia_uploader", NvidiaAssetUploader(api_key))
+        builder.register_provider("nvidia_ocr", NvidiaOCRProvider(api_key))
+
+    # Check if input directory has files before starting pipeline
+    exists, files = _check_input_files(config.input_dir, config.extension)
+    if not exists:
+        logging.error(f"Input directory not found: {config.input_dir}")
+        return
+
+    if not files:
+        logging.warning(f"No files with extension '{config.extension}' found in {config.input_dir}")
+        logging.info("Pipeline not started - no files to process")
+        return
+
+    logging.info(f"Found {len(files)} file(s) to process")
+
+    # Run the pipeline
+    _run_pipeline(builder, config, files)
+
 
 def main() -> None:
     setup_logging()
 
     parser = argparse.ArgumentParser(description="Flipchart pipeline: optimize images and create PDF")
-    parser.add_argument("-i", "--input", type=str, default=".", help="Input directory containing images")
-    parser.add_argument("-e", "--extension", type=str, default=".jpg", help="File extension to process")
+    parser.add_argument(
+        "-i", "--input", type=str, default=".", help="Input directory containing images (default: current directory)"
+    )
+    parser.add_argument("-e", "--extension", type=str, default=".jpg", help="File extension to process (default: .jpg)")
     parser.add_argument(
         "-o",
         "--output",
         type=str,
         default=f"combined-{datetime.now().strftime('%Y%m%d-%H%M%S')}.pdf",
-        help="Output PDF filename",
+        help="Output PDF filename (default: combined-YYYYMMDD-HHMMSS.pdf)",
     )
     parser.add_argument("--no-ocr", action="store_true", help="Skip OCR step and use only images for PDF")
     parser.add_argument(
