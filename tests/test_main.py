@@ -564,15 +564,10 @@ class TestIntegration:
         file_loader = FileLoader(target_q=queues[0], input_dir=str(tmp_path), extension=".jpg")
         file_loader.load_files()
 
-        # Wait for processing to complete
-        # Wait until all workers have processed FinalizeTask
-        max_wait = 30  # 30 seconds max
-        start_time = time.time()
-        while time.time() - start_time < max_wait:
-            all_done = all(w.finalize_done_event.is_set() for w in workers)
-            if all_done:
-                break
-            time.sleep(0.1)
+        # Wait for all input queues to drain (all tasks processed)
+        # This ensures all tasks flow through the entire pipeline
+        for i, q in enumerate(queues[:-1]):  # Skip final output queue
+            q.join()
 
         # Stop workers
         for worker in workers:

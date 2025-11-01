@@ -50,18 +50,14 @@ class Worker(threading.Thread):
             The processed status task
         """
         # Pass StatusTask through processor (some may populate it)
-        result = (
-            self.process_fn.process(task) if hasattr(self.process_fn, "process") else task
-        )
+        result = self.process_fn.process(task) if hasattr(self.process_fn, "process") else task
 
         # Log status if this is the last worker
         if not self.output_q:
             for message in task.messages:
                 logger.info(message)
             if task.output_file:
-                logger.info(
-                    f"Pipeline completed. Processed {task.files_processed} file(s)."
-                )
+                logger.info(f"Pipeline completed. Processed {task.files_processed} file(s).")
 
         # Type checker: process() returns Union[FileTask, StatusTask] but we know it's StatusTask
         return result  # type: ignore[return-value]
