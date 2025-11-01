@@ -7,9 +7,7 @@ permissions:
 
 on:
   push:
-    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main, master, develop ]
 
 jobs:
   test:
@@ -218,12 +216,7 @@ jobs:
         with:
           name: coverage-json
 
-      - name: Display coverage summary
-        run: |
-          echo "## Coverage Summary" >> $GITHUB_STEP_SUMMARY
-          if [ -f coverage.json ]; then
-            COVERAGE=$(python -c "import json; print(f\"{json.load(open('coverage.json'))['totals']['percent_covered']:.2f}\")")
-            echo "Overall coverage: **${COVERAGE}%**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Coverage reports are available in the artifacts." >> $GITHUB_STEP_SUMMARY
-          fi
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
