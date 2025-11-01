@@ -6,6 +6,7 @@ import cv2
 from .ocr_provider import AssetUploader, OCRProvider
 from .task_item import TaskProcessor, StatusTask, FileTask
 from .registry import TaskRegistry
+from .exceptions import UploadException, OCRException
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +53,13 @@ class UploadTask(TaskProcessor):
             _, img_bytes = cv2.imencode(".jpg", task.img)
             task.asset_id = self.uploader.upload(img_bytes.tobytes(), f"{task.file_path.name}")
             logger.debug(f"Upload completed for {task.file_path.name}, asset_id={task.asset_id}")
-        except Exception as e:
-            logger.exception(f"UploadTask failed for {task.file_path}: {e}")
+        except UploadException:
+            # Re-raise specific upload exceptions
             raise
+        except Exception as e:
+            # Wrap generic exceptions in UploadException
+            logger.exception(f"UploadTask failed for {task.file_path}: {e}")
+            raise UploadException(f"Failed to upload {task.file_path}: {e}") from e
 
         return task
 
@@ -100,14 +105,18 @@ class OCRTask(TaskProcessor):
         if not hasattr(task, "asset_id") or task.asset_id is None:
             msg = f"Task {task.file_path} has no asset_id; upload must run first"
             logger.error(msg)
-            raise ValueError(msg)
+            raise OCRException(msg)
 
         logger.debug(f"Performing OCR for task: {task.file_path}")
         try:
             task.ocr_boxes = self.provider.detect_text(task.asset_id, task.img)
             logger.debug(f"OCR completed for {task.file_path}, found {len(task.ocr_boxes)} text boxes")
-        except Exception as e:
-            logger.exception(f"OCRTask failed for {task.file_path}: {e}")
+        except OCRException:
+            # Re-raise specific OCR exceptions
             raise
+        except Exception as e:
+            # Wrap generic exceptions in OCRException
+            logger.exception(f"OCRTask failed for {task.file_path}: {e}")
+            raise OCRException(f"Failed to perform OCR on {task.file_path}: {e}") from e
 
         return task

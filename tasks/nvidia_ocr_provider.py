@@ -11,6 +11,7 @@ import requests
 
 from .ocr_provider import AssetUploader, OCRProvider
 from .task_item import OCRBox
+from .exceptions import UploadException, OCRException
 
 logger = logging.getLogger(__name__)
 
@@ -66,17 +67,23 @@ class NvidiaAssetUploader(AssetUploader):
             upload_url = response.json()["uploadUrl"]
             asset_id = response.json()["assetId"]
             logger.debug(f"Received upload URL and asset_id={asset_id} for {description}")
-        except Exception as e:
+        except requests.HTTPError as e:
             logger.exception(f"Failed to request upload slot for {description}: {e}")
-            raise
+            raise UploadException(f"HTTP error requesting upload slot: {e}") from e
+        except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
+            logger.exception(f"Failed to request upload slot for {description}: {e}")
+            raise UploadException(f"Failed to request upload slot for {description}: {e}") from e
 
         try:
             response = requests.put(upload_url, data=image_bytes, headers=s3_headers, timeout=300)
             response.raise_for_status()
             logger.debug(f"Successfully uploaded asset {asset_id}")
-        except Exception as e:
+        except requests.HTTPError as e:
             logger.exception(f"Failed to upload asset {asset_id}: {e}")
-            raise
+            raise UploadException(f"HTTP error uploading asset: {e}") from e
+        except requests.RequestException as e:
+            logger.exception(f"Failed to upload asset {asset_id}: {e}")
+            raise UploadException(f"Network error uploading asset: {e}") from e
 
         return uuid.UUID(asset_id)
 
@@ -126,9 +133,12 @@ class NvidiaOCRProvider(OCRProvider):
             response = requests.post(self.ocr_url, headers=headers, json=inputs, timeout=300)
             response.raise_for_status()
             logger.debug(f"OCR request successful for asset_id={asset_list}")
-        except Exception as e:
+        except requests.HTTPError as e:
             logger.exception(f"OCR request failed for asset_id={asset_list}: {e}")
-            raise
+            raise OCRException(f"HTTP error during OCR request: {e}") from e
+        except requests.RequestException as e:
+            logger.exception(f"OCR request failed for asset_id={asset_list}: {e}")
+            raise OCRException(f"Network error during OCR request: {e}") from e
 
         # Save response ZIP to temp directory (platform-independent)
         temp_dir = Path(tempfile.gettempdir())

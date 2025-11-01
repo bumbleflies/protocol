@@ -14,6 +14,7 @@ import requests
 
 from tasks.nvidia_ocr_provider import NvidiaAssetUploader, NvidiaOCRProvider
 from tasks.task_item import OCRBox
+from tasks.exceptions import UploadException, OCRException
 
 
 class TestNvidiaAssetUploader:
@@ -71,7 +72,7 @@ class TestNvidiaAssetUploader:
 
         uploader = NvidiaAssetUploader(api_key="test_key")
 
-        with pytest.raises(requests.HTTPError):
+        with pytest.raises(UploadException):
             uploader.upload(b"image_data", "test.jpg")
 
     @patch("requests.post")
@@ -91,7 +92,7 @@ class TestNvidiaAssetUploader:
 
         uploader = NvidiaAssetUploader(api_key="test_key")
 
-        with pytest.raises(requests.HTTPError):
+        with pytest.raises(UploadException):
             uploader.upload(b"image_data", "test.jpg")
 
     @patch("requests.post")
@@ -120,11 +121,11 @@ class TestNvidiaAssetUploader:
     @patch("requests.post")
     def test_upload_exception_logged(self, mock_post, caplog):
         """Test upload logs exception on POST failure."""
-        mock_post.side_effect = Exception("Network error")
+        mock_post.side_effect = requests.RequestException("Network error")
 
         uploader = NvidiaAssetUploader(api_key="test_key")
 
-        with pytest.raises(Exception):
+        with pytest.raises(UploadException):
             with caplog.at_level(logging.ERROR):
                 uploader.upload(b"image_data", "test.jpg")
 
@@ -294,7 +295,7 @@ class TestNvidiaOCRProvider:
         provider = NvidiaOCRProvider(api_key="test_key")
         img = np.zeros((100, 100, 3), dtype=np.uint8)
 
-        with pytest.raises(requests.HTTPError):
+        with pytest.raises(OCRException):
             provider.detect_text(uuid4(), img)
 
     @patch("requests.post")

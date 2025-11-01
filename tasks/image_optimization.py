@@ -4,6 +4,7 @@ from typing import Optional, Union
 
 from .task_item import TaskProcessor, StatusTask, FileTask
 from .registry import TaskRegistry
+from .exceptions import ImageProcessingException
 
 
 @TaskRegistry.register("image_optimization")
@@ -19,6 +20,60 @@ class ImageOptimizationTask(TaskProcessor):
     - Empty or partially filled flipcharts
     - Angled/perspective shots
     """
+
+    # Rotation detection constants
+    MIN_ROTATION_ANGLE_DEGREES = 0.5  # Minimum angle to trigger rotation correction
+
+    # Edge detection preprocessing parameters
+    BILATERAL_FILTER_DIAMETER = 9
+    BILATERAL_FILTER_SIGMA_COLOR = 75
+    BILATERAL_FILTER_SIGMA_SPACE = 75
+    GAUSSIAN_BLUR_KERNEL_SIZE = (5, 5)
+    MEDIAN_BLUR_KERNEL_SIZE = 5
+
+    # Canny edge detection thresholds (low, high)
+    CANNY_THRESHOLD_STANDARD = (50, 150)
+    CANNY_THRESHOLD_LOW = (30, 100)  # For faint edges
+    CANNY_THRESHOLD_HIGH = (75, 200)  # For strong edges
+
+    # Morphology kernel sizes
+    DILATE_KERNEL_SIZE = (3, 3)
+    CLOSE_KERNEL_SIZE = (7, 7)
+    DILATE_ITERATIONS = 1
+    CLOSE_ITERATIONS = 3
+
+    # Contour analysis parameters
+    MAX_CONTOURS_TO_ANALYZE = 15
+    EPSILON_APPROXIMATION_FACTORS = [0.015, 0.02, 0.025, 0.03, 0.04]
+
+    # Bright paper detection parameters
+    BRIGHTNESS_THRESHOLDS = [210, 200, 190, 180]
+    BRIGHT_PAPER_KERNEL_SIZE = (25, 25)
+    MAX_BRIGHT_CONTOURS_TO_ANALYZE = 5
+    BRIGHT_MIN_AREA_RATIO = 0.15
+    BRIGHT_MAX_AREA_RATIO = 0.90
+    BRIGHT_EPSILON_FACTORS = [0.02, 0.03, 0.04, 0.05, 0.06]
+
+    # Quad validation parameters
+    MIN_ASPECT_RATIO = 0.5
+    MAX_ASPECT_RATIO = 2.5
+    QUAD_VALIDATION_MARGIN = 20  # pixels
+
+    # Edge-based cropping parameters
+    EDGE_CROP_MARGIN_RATIO = 0.1  # 10% margin on each side
+    EDGE_MIN_CROP_RATIO = 0.8  # Don't crop more than 20% of image
+
+    # Hough line detection parameters
+    HOUGH_RHO = 1
+    HOUGH_THETA = np.pi / 180
+    HOUGH_THRESHOLD = 100
+    HOUGH_MIN_LINE_LENGTH_RATIO = 0.25  # Fraction of image dimension
+    HOUGH_MAX_LINE_GAP = 20
+
+    # Canny parameters for rotation detection
+    ROTATION_CANNY_LOW = 50
+    ROTATION_CANNY_HIGH = 150
+    ROTATION_CANNY_APERTURE = 3
 
     def __init__(
         self,
@@ -62,11 +117,11 @@ class ImageOptimizationTask(TaskProcessor):
 
         img = cv2.imread(str(task.file_path))
         if img is None:
-            raise ValueError(f"Could not read image {task.file_path}")
+            raise ImageProcessingException(f"Could not read image {task.file_path}")
 
         # First, try to detect and correct rotation
         rotation_angle = self._detect_rotation_angle(img)
-        if rotation_angle is not None and abs(rotation_angle) > 0.5:  # Only rotate if > 0.5 degrees
+        if rotation_angle is not None and abs(rotation_angle) > self.MIN_ROTATION_ANGLE_DEGREES:
             img = self._rotate_image(img, rotation_angle)
 
         # Detect flipchart quadrilateral (works for flipcharts with clear edges)
@@ -124,18 +179,23 @@ class ImageOptimizationTask(TaskProcessor):
         # Try multiple preprocessing strategies
         strategies = [
             # Strategy 1: Bilateral filter (preserves edges)
-            lambda g: cv2.bilateralFilter(g, 9, 75, 75),
+            lambda g: cv2.bilateralFilter(
+                g,
+                self.BILATERAL_FILTER_DIAMETER,
+                self.BILATERAL_FILTER_SIGMA_COLOR,
+                self.BILATERAL_FILTER_SIGMA_SPACE,
+            ),
             # Strategy 2: Gaussian blur (good for noisy images)
-            lambda g: cv2.GaussianBlur(g, (5, 5), 0),
+            lambda g: cv2.GaussianBlur(g, self.GAUSSIAN_BLUR_KERNEL_SIZE, 0),
             # Strategy 3: Median blur (removes salt-and-pepper noise)
-            lambda g: cv2.medianBlur(g, 5),
+            lambda g: cv2.medianBlur(g, self.MEDIAN_BLUR_KERNEL_SIZE),
         ]
 
         # Try multiple Canny thresholds
         canny_params = [
-            (50, 150),  # Standard
-            (30, 100),  # Lower thresholds for faint edges
-            (75, 200),  # Higher thresholds for strong edges
+            self.CANNY_THRESHOLD_STANDARD,
+            self.CANNY_THRESHOLD_LOW,
+            self.CANNY_THRESHOLD_HIGH,
         ]
 
         for blur_fn in strategies:
@@ -146,12 +206,12 @@ class ImageOptimizationTask(TaskProcessor):
                 edges = cv2.Canny(blurred, low_thresh, high_thresh)
 
                 # Dilate to connect nearby edges (helps with rotated/partial edges)
-                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-                edges = cv2.dilate(edges, kernel_dilate, iterations=1)
+                kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, self.DILATE_KERNEL_SIZE)
+                edges = cv2.dilate(edges, kernel_dilate, iterations=self.DILATE_ITERATIONS)
 
                 # Morphological closing to fill gaps
-                kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
-                closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel_close, iterations=3)
+                kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, self.CLOSE_KERNEL_SIZE)
+                closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel_close, iterations=self.CLOSE_ITERATIONS)
 
                 # Find contours
                 contours, _ = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -160,7 +220,7 @@ class ImageOptimizationTask(TaskProcessor):
                 contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
                 # Find the first quadrilateral that meets our criteria
-                for contour in contours[:15]:  # Check top 15 largest contours
+                for contour in contours[: self.MAX_CONTOURS_TO_ANALYZE]:
                     area = cv2.contourArea(contour)
                     area_ratio = area / image_area
 
@@ -170,7 +230,7 @@ class ImageOptimizationTask(TaskProcessor):
 
                     # Try multiple epsilon values for polygon approximation
                     perimeter = cv2.arcLength(contour, True)
-                    for epsilon_factor in [0.015, 0.02, 0.025, 0.03, 0.04]:
+                    for epsilon_factor in self.EPSILON_APPROXIMATION_FACTORS:
                         approx = cv2.approxPolyDP(contour, epsilon_factor * perimeter, True)
 
                         # Check if it's a quadrilateral (4 corners)
@@ -202,25 +262,25 @@ class ImageOptimizationTask(TaskProcessor):
 
         # Try multiple threshold values - lower values include more of background,
         # higher values isolate the brightest paper regions
-        for threshold_value in [210, 200, 190, 180]:
+        for threshold_value in self.BRIGHTNESS_THRESHOLDS:
             _, bright_mask = cv2.threshold(gray, threshold_value, 255, cv2.THRESH_BINARY)
 
             # Morphological closing to fill content holes and connect paper regions
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 25))
-            closed = cv2.morphologyEx(bright_mask, cv2.MORPH_CLOSE, kernel, iterations=3)
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, self.BRIGHT_PAPER_KERNEL_SIZE)
+            closed = cv2.morphologyEx(bright_mask, cv2.MORPH_CLOSE, kernel, iterations=self.CLOSE_ITERATIONS)
 
             # Find external contours (outermost boundaries only)
             contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
             # Find the first suitable quadrilateral
-            for contour in contours[:5]:  # Check top 5 largest bright regions
+            for contour in contours[: self.MAX_BRIGHT_CONTOURS_TO_ANALYZE]:
                 area = cv2.contourArea(contour)
                 area_ratio = area / image_area
 
                 # Paper should be significant portion of image (15-90%)
                 # Lower threshold (15%) to catch tightly-cropped flipcharts
-                if area_ratio < 0.15 or area_ratio > 0.90:
+                if area_ratio < self.BRIGHT_MIN_AREA_RATIO or area_ratio > self.BRIGHT_MAX_AREA_RATIO:
                     continue
 
                 # Get convex hull first (straightens curved edges)
@@ -230,7 +290,7 @@ class ImageOptimizationTask(TaskProcessor):
                 perimeter = cv2.arcLength(hull, True)
 
                 # Try different epsilon values to find a quadrilateral
-                for epsilon_factor in [0.02, 0.03, 0.04, 0.05, 0.06]:
+                for epsilon_factor in self.BRIGHT_EPSILON_FACTORS:
                     approx = cv2.approxPolyDP(hull, epsilon_factor * perimeter, True)
 
                     if len(approx) == 4:
@@ -260,11 +320,11 @@ class ImageOptimizationTask(TaskProcessor):
 
         # Aspect ratio check (flipcharts are usually wider than tall or roughly square)
         aspect_ratio = w / h if h > 0 else 0
-        if not (0.5 <= aspect_ratio <= 2.5):
+        if not (self.MIN_ASPECT_RATIO <= aspect_ratio <= self.MAX_ASPECT_RATIO):
             return False
 
         # Check that quad isn't too close to image edges (likely entire image)
-        margin = 20
+        margin = self.QUAD_VALIDATION_MARGIN
         if x < margin and y < margin and (x + w) > (img_w - margin) and (y + h) > (img_h - margin):
             return False
 
@@ -355,9 +415,9 @@ class ImageOptimizationTask(TaskProcessor):
         if coords is not None:
             x, y, w, h = cv2.boundingRect(coords)
 
-            # Add generous margin (10% of dimensions)
-            margin_w = int(w * 0.1)
-            margin_h = int(h * 0.1)
+            # Add generous margin
+            margin_w = int(w * self.EDGE_CROP_MARGIN_RATIO)
+            margin_h = int(h * self.EDGE_CROP_MARGIN_RATIO)
             x = max(0, x - margin_w)
             y = max(0, y - margin_h)
             w = min(img.shape[1] - x, w + 2 * margin_w)
@@ -384,16 +444,19 @@ class ImageOptimizationTask(TaskProcessor):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # Edge detection
-        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+        edges = cv2.Canny(
+            gray, self.ROTATION_CANNY_LOW, self.ROTATION_CANNY_HIGH, apertureSize=self.ROTATION_CANNY_APERTURE
+        )
 
         # Hough line detection
+        min_line_length = int(min(img.shape[:2]) * self.HOUGH_MIN_LINE_LENGTH_RATIO)
         lines = cv2.HoughLinesP(
             edges,
-            rho=1,
-            theta=np.pi / 180,
-            threshold=100,
-            minLineLength=min(img.shape[:2]) // 4,
-            maxLineGap=20,
+            rho=self.HOUGH_RHO,
+            theta=self.HOUGH_THETA,
+            threshold=self.HOUGH_THRESHOLD,
+            minLineLength=min_line_length,
+            maxLineGap=self.HOUGH_MAX_LINE_GAP,
         )
 
         if lines is None or len(lines) == 0:
@@ -423,8 +486,8 @@ class ImageOptimizationTask(TaskProcessor):
         # Use median angle to avoid outliers
         median_angle = float(np.median(angles))
 
-        # Only return angle if it's significant (> 0.5 degrees)
-        if abs(median_angle) > 0.5:
+        # Only return angle if it's significant
+        if abs(median_angle) > self.MIN_ROTATION_ANGLE_DEGREES:
             return -median_angle  # Negate to get correction angle
         return None
 

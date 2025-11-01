@@ -54,7 +54,9 @@ class TestImageOptimizationTask:
         processor = ImageOptimizationTask()
         file_task = FileTask(file_path=Path("/nonexistent/image.jpg"), sort_key=1.0)
 
-        with pytest.raises(ValueError, match="Could not read image"):
+        from tasks.exceptions import ImageProcessingException
+
+        with pytest.raises(ImageProcessingException, match="Could not read image"):
             processor.process(file_task)
 
     def test_process_simple_image(self):

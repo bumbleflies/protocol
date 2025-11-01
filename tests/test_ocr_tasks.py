@@ -12,6 +12,7 @@ import pytest
 from tasks.ocr import UploadTask, OCRTask
 from tasks.task_item import FileTask, OCRBox, StatusTask
 from tasks.ocr_provider import AssetUploader, OCRProvider
+from tasks.exceptions import OCRException
 
 
 class TestUploadTask:
@@ -224,7 +225,7 @@ class TestOCRTask:
         file_task = FileTask(file_path=Path("test.jpg"), sort_key=1.0, img=img)
 
         # Process should raise ValueError
-        with pytest.raises(ValueError, match="has no asset_id"):
+        with pytest.raises(OCRException, match="has no asset_id"):
             processor.process(file_task)
 
         # Provider should not be called
@@ -244,7 +245,7 @@ class TestOCRTask:
         file_task.asset_id = None
 
         # Process should raise ValueError
-        with pytest.raises(ValueError, match="has no asset_id"):
+        with pytest.raises(OCRException, match="has no asset_id"):
             processor.process(file_task)
 
     def test_process_logs_debug_messages(self, caplog):
