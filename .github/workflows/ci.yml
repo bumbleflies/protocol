@@ -211,6 +211,12 @@ jobs:
           comment_mode: always
           compare_to_earlier_commit: true
 
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Download coverage report
         uses: actions/download-artifact@v4
         with:
