@@ -70,7 +70,8 @@ class PipelineBuilder:
 
             # Create worker
             input_q = queues[i]
-            output_q = queues[i + 1]
+            # Last worker has no output queue (terminal sink)
+            output_q = queues[i + 1] if i < len(self.config.tasks) - 1 else None
 
             worker = Worker(name=task_cfg.name, input_q=input_q, output_q=output_q, process_fn=processor)
             workers.append(worker)
