@@ -1,8 +1,9 @@
 name: CI - Test & Quality
 
 permissions:
-  contents: write
+  checks: write
   pull-requests: write
+  contents: read
 
 on:
   push:
