@@ -44,8 +44,7 @@ jobs:
         run: poetry run pytest tests/ -v --cov=tasks --cov=pipeline --cov-report=xml
 
       - name: Check coverage threshold
-        run: |
-          coverage report --fail-under=90
+        run: poetry run coverage report --fail-under=90
 
       - name: Python Semantic Release
         id: release
