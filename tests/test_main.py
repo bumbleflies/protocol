@@ -404,8 +404,11 @@ class TestMain:
 
     def test_main_calls_setup_logging(self):
         """Test that main() calls setup_logging."""
-        with patch("sys.argv", ["main.py"]), patch("flipchart_ocr_pipeline.main.setup_logging") as mock_setup, patch(
-                "flipchart_ocr_pipeline.main.main_with_config"):
+        with (
+            patch("sys.argv", ["main.py"]),
+            patch("flipchart_ocr_pipeline.main.setup_logging") as mock_setup,
+            patch("flipchart_ocr_pipeline.main.main_with_config"),
+        ):
             main()
 
             # Verify setup_logging was called
@@ -579,7 +582,7 @@ class TestIntegration:
             from flipchart_ocr_pipeline.tasks.task_item import FinalizeTask, StatusTask
 
             assert (
-                    len(items_in_last_queue) == 2
+                len(items_in_last_queue) == 2
             ), f"Expected 2 items (FinalizeTask, StatusTask), got {len(items_in_last_queue)}"
             assert isinstance(items_in_last_queue[0], FinalizeTask), "First item should be FinalizeTask"
             assert isinstance(items_in_last_queue[1], StatusTask), "Second item should be StatusTask"

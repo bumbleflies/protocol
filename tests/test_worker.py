@@ -7,7 +7,13 @@ import time
 from pathlib import Path
 
 from flipchart_ocr_pipeline.pipeline import Worker
-from flipchart_ocr_pipeline.tasks.task_item import TaskProcessor, FinalizableTaskProcessor, FileTask, FinalizeTask, StatusTask
+from flipchart_ocr_pipeline.tasks.task_item import (
+    TaskProcessor,
+    FinalizableTaskProcessor,
+    FileTask,
+    FinalizeTask,
+    StatusTask,
+)
 
 
 class CountingProcessor(TaskProcessor):
