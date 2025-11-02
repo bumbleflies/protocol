@@ -22,7 +22,7 @@ dependencies = [
     "requests>=2.32.5,<3.0.0",
     "rich>=14.1.0,<15.0.0",
     "python-dotenv>=1.0.1,<2.0.0",
-    "PyYAML>=6.0.2,<7.0.0"
+    "PyYAML>=6.0.2,<7.0.0",
 ]
 
 [dependency-groups]
@@ -36,6 +36,7 @@ check = [
     "flake8>=7.1.0",
     "black>=25.9.0",
     "mypy>=1.18.2",
+    "bandit (>=1.8.6,<2.0.0)",
 ]
 commit = [
     "pre-commit>=4.0.0",

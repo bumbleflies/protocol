@@ -174,7 +174,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.13'
 
       - uses: actions/cache@v4
         with:
@@ -187,10 +187,9 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-root
 
-      - name: Run safety check (dependency vulnerabilities)
-        run: |
-          poetry run safety check --json || true
-        continue-on-error: true
+      - uses: pyupio/safety-action@v1
+        with:
+          api-key: ${{ secrets.SAFETY_API_KEY }}
 
       - name: Run bandit (security issues)
         run: |
