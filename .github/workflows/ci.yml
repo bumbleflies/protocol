@@ -94,8 +94,7 @@ jobs:
         run: poetry install --no-root
 
       - name: Run tests with coverage
-        run: |
-          poetry run pytest tests/ --cov=flipchart_ocr_pipeline --cov-report=xml --cov-report=html --cov-report=term --junitxml=junit.xml -o junit_family=legacy
+        run: poetry run pytest tests/ --cov=flipchart_ocr_pipeline --cov-report=xml --cov-report=html --cov-report=term --junitxml=junit.xml -o junit_family=legacy
 
       - name: Coverage comment on PR
         uses: py-cov-action/python-coverage-comment-action@v3
@@ -234,6 +233,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: test-results-*.xml
+          verbose: true
 
       - name: Download coverage report
         uses: actions/download-artifact@v4
