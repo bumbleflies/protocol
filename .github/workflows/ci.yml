@@ -95,7 +95,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          poetry run pytest tests/ --cov=flipchart_ocr_pipeline --cov-report=xml --cov-report=html --cov-report=term --cov-report=json --junitxml=junit.xml -o junit_family=legacy
+          poetry run pytest tests/ --cov=flipchart_ocr_pipeline --cov-report=xml --cov-report=html --cov-report=term --junitxml=junit.xml -o junit_family=legacy
 
       - name: Coverage comment on PR
         uses: py-cov-action/python-coverage-comment-action@v3
