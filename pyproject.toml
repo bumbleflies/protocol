@@ -97,6 +97,11 @@ markers = [
 relative_files = true
 source = ["flipchart_ocr_pipeline"]
 omit = ["*/tests/*", "*/test_*.py", "*/__init__.py", ]
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "def __repr__", "if __name__ == .__main__.:", "raise AssertionError", "raise NotImplementedError", "if TYPE_CHECKING:", "@abstractmethod", ]
+precision = 2
+show_missing = true
+skip_covered = false
 
 [tool.semantic_release]
 version_toml = "pyproject.toml:tool.poetry.version"
