@@ -157,11 +157,11 @@ jobs:
 
       - name: Run black (check only)
         run: |
-          poetry run black --check tasks/ pipeline/ tests/
+          poetry run black --check flipchart_ocr_pipeline/ tests/
 
       - name: Run mypy type checking
         run: |
-          poetry run mypy tasks/ pipeline/ --ignore-missing-imports --no-strict-optional
+          poetry run mypy flipchart_ocr_pipeline/ --ignore-missing-imports --no-strict-optional
 
   security:
     name: Security Scan
@@ -194,7 +194,7 @@ jobs:
 
       - name: Run bandit (security issues)
         run: |
-          poetry run bandit -r tasks/ pipeline/ -f json -o bandit-report.json || true
+          poetry run bandit -r flipchart_ocr_pipeline/ -f json -o bandit-report.json || true
         continue-on-error: true
 
       - name: Upload security reports
