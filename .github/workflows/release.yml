@@ -34,7 +34,7 @@ jobs:
         run: poetry install --no-root
 
       - name: Run tests
-        run: poetry run pytest tests/ -v --cov=tasks --cov=pipeline --cov-report=xml
+        run: poetry run pytest tests/ -v --cov=flipchart_ocr_pipeline --cov-report=xml
 
       - name: Check coverage threshold
         run: poetry run coverage report --fail-under=45

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **CRITICAL: Always ensure these 4 requirements before completing any task:**
 
 1. ✅ **100% Line and Branch Coverage** (Target: 99%+ per file)
-   - Run: `pytest tests/ --cov=tasks --cov=pipeline --cov-branch`
+   - Run: `pytest tests/ --cov=flipchart_ocr_pipeline --cov-branch`
    - **Each individual file** must have 99%+ coverage (line and branch)
    - Overall coverage must be 99%+
    - Must have comprehensive tests for all code paths

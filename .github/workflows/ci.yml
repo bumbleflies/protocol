@@ -50,7 +50,7 @@ jobs:
         run: poetry install --no-root
 
       - name: Run tests with pytest
-        run: poetry run pytest tests/ -v --tb=short --junitxml=test-results-${{ matrix.os }}-${{ matrix.python-version }}.xml
+        run: poetry run pytest tests/ -o junit_family=legacy --junitxml=test-results-${{ matrix.os }}-${{ matrix.python-version }}.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -95,15 +95,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          poetry run pytest tests/ --cov=tasks --cov=pipeline --cov-report=xml --cov-report=html --cov-report=term --cov-report=json
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+          poetry run pytest tests/ --cov=flipchart_ocr_pipeline --cov-report=xml --cov-report=html --cov-report=term --cov-report=json --junitxml=junit.xml -o junit_family=legacy
 
       - name: Coverage comment on PR
         uses: py-cov-action/python-coverage-comment-action@v3
@@ -122,12 +114,11 @@ jobs:
       - name: Upload coverage JSON
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-json
-          path: coverage.json
+          name: coverage
+          path: coverage.*
 
       - name: Check coverage threshold
-        run: |
-          poetry run coverage report --fail-under=45
+        run: poetry run coverage report --fail-under=45
 
   lint:
     name: Code Quality & Linting
@@ -242,11 +233,12 @@ jobs:
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results-*.xml
 
       - name: Download coverage report
         uses: actions/download-artifact@v4
         with:
-          name: coverage-json
+          name: coverage
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
