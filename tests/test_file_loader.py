@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from pipeline.file_loader import FileLoader
-from tasks.task_item import FileTask, FinalizeTask, StatusTask
+from flipchart_ocr_pipeline.pipeline import FileLoader
+from flipchart_ocr_pipeline.tasks.task_item import FileTask, FinalizeTask, StatusTask
 
 
 class TestFileLoader:

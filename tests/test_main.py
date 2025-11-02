@@ -1,15 +1,13 @@
 """Tests for main.py entry point and configuration."""
 
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch, call
 import argparse
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
 
-import main
-from pipeline.config import PipelineConfig
+from flipchart_ocr_pipeline.main import setup_logging, main_with_config, main
 
 
 class TestSetupLogging:
@@ -24,11 +22,10 @@ class TestSetupLogging:
             patch("logging.StreamHandler") as mock_stream,
             patch("logging.getLogger") as mock_get_logger,
         ):
-
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
 
-            main.setup_logging(str(log_file))
+            setup_logging(str(log_file))
 
             # Verify basicConfig was called
             mock_basic.assert_called_once()
@@ -49,7 +46,7 @@ class TestMainWithConfig:
         args = argparse.Namespace(config="nonexistent.yaml", input=".", extension=".jpg", output=None, no_ocr=False)
 
         with pytest.raises(FileNotFoundError, match="Config file not found"):
-            main.main_with_config("nonexistent.yaml", args)
+            main_with_config("nonexistent.yaml", args)
 
     def test_main_with_config_loads_yaml(self, tmp_path):
         """Test main_with_config loads and parses YAML config."""
@@ -71,14 +68,13 @@ class TestMainWithConfig:
         args = argparse.Namespace(config=str(config_file), input=None, extension=".jpg", output=None, no_ocr=False)
 
         with (
-            patch("main.load_dotenv"),
-            patch("main.PipelineBuilder") as mock_builder,
-            patch("main.FileLoader") as mock_loader,
-            patch("main.WorkflowMonitor") as mock_monitor,
+            patch("flipchart_ocr_pipeline.main.load_dotenv"),
+            patch("flipchart_ocr_pipeline.main.PipelineBuilder") as mock_builder,
+            patch("flipchart_ocr_pipeline.main.FileLoader") as mock_loader,
+            patch("flipchart_ocr_pipeline.main.WorkflowMonitor") as mock_monitor,
             patch("os.getenv") as mock_getenv,
-            patch("main._check_input_files") as mock_check_files,
+            patch("flipchart_ocr_pipeline.main._check_input_files") as mock_check_files,
         ):
-
             # Mock builder
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
@@ -98,7 +94,7 @@ class TestMainWithConfig:
             # Mock file checking to simulate files existing
             mock_check_files.return_value = (True, [MagicMock()])  # Directory exists, has files
 
-            main.main_with_config(str(config_file), args)
+            main_with_config(str(config_file), args)
 
             # Verify config was loaded
             mock_builder.assert_called_once()
@@ -130,14 +126,13 @@ class TestMainWithConfig:
         )
 
         with (
-            patch("main.load_dotenv"),
-            patch("main.load_config_from_dict") as mock_load_config,
-            patch("main.PipelineBuilder") as mock_builder,
-            patch("main.FileLoader") as mock_loader,
-            patch("main.WorkflowMonitor") as mock_monitor,
+            patch("flipchart_ocr_pipeline.main.load_dotenv"),
+            patch("flipchart_ocr_pipeline.main.load_config_from_dict") as mock_load_config,
+            patch("flipchart_ocr_pipeline.main.PipelineBuilder") as mock_builder,
+            patch("flipchart_ocr_pipeline.main.FileLoader") as mock_loader,
+            patch("flipchart_ocr_pipeline.main.WorkflowMonitor") as mock_monitor,
             patch("os.getenv") as mock_getenv,
         ):
-
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
             mock_builder_instance.build.return_value = ([], [MagicMock()])
@@ -156,7 +151,7 @@ class TestMainWithConfig:
             mock_config.extension = ".jpg"
             mock_load_config.return_value = mock_config
 
-            main.main_with_config(str(config_file), args)
+            main_with_config(str(config_file), args)
 
             # Verify load_config_from_dict was called with overridden values
             mock_load_config.assert_called_once()
@@ -190,14 +185,13 @@ class TestMainWithConfig:
         )
 
         with (
-            patch("main.load_dotenv"),
-            patch("main.load_config_from_dict") as mock_load_config,
-            patch("main.PipelineBuilder") as mock_builder,
-            patch("main.FileLoader") as mock_loader,
-            patch("main.WorkflowMonitor") as mock_monitor,
-            patch("main._check_input_files") as mock_check_files,
+            patch("flipchart_ocr_pipeline.main.load_dotenv"),
+            patch("flipchart_ocr_pipeline.main.load_config_from_dict") as mock_load_config,
+            patch("flipchart_ocr_pipeline.main.PipelineBuilder") as mock_builder,
+            patch("flipchart_ocr_pipeline.main.FileLoader") as mock_loader,
+            patch("flipchart_ocr_pipeline.main.WorkflowMonitor") as mock_monitor,
+            patch("flipchart_ocr_pipeline.main._check_input_files") as mock_check_files,
         ):
-
             # Mock file checking to simulate files existing
             mock_check_files.return_value = (True, [MagicMock()])
 
@@ -217,7 +211,7 @@ class TestMainWithConfig:
             mock_config.extension = ".jpg"
             mock_load_config.return_value = mock_config
 
-            main.main_with_config(str(config_file), args)
+            main_with_config(str(config_file), args)
 
             # Verify load_config_from_dict was called
             mock_load_config.assert_called_once()
@@ -251,13 +245,12 @@ class TestMainWithConfig:
         args = argparse.Namespace(config=str(config_file), input=None, extension=".jpg", output=None, no_ocr=True)
 
         with (
-            patch("main.load_dotenv"),
-            patch("main.load_config_from_dict") as mock_load_config,
-            patch("main.PipelineBuilder") as mock_builder,
-            patch("main.FileLoader") as mock_loader,
-            patch("main.WorkflowMonitor") as mock_monitor,
+            patch("flipchart_ocr_pipeline.main.load_dotenv"),
+            patch("flipchart_ocr_pipeline.main.load_config_from_dict") as mock_load_config,
+            patch("flipchart_ocr_pipeline.main.PipelineBuilder") as mock_builder,
+            patch("flipchart_ocr_pipeline.main.FileLoader") as mock_loader,
+            patch("flipchart_ocr_pipeline.main.WorkflowMonitor") as mock_monitor,
         ):
-
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
             mock_builder_instance.build.return_value = ([], [MagicMock()])
@@ -273,7 +266,7 @@ class TestMainWithConfig:
             mock_config.extension = ".jpg"
             mock_load_config.return_value = mock_config
 
-            main.main_with_config(str(config_file), args)
+            main_with_config(str(config_file), args)
 
             # Verify config was modified
             mock_load_config.assert_called_once()
@@ -310,16 +303,15 @@ class TestMainWithConfig:
         args = argparse.Namespace(config=str(config_file), input=None, extension=".jpg", output=None, no_ocr=False)
 
         with (
-            patch("main.load_dotenv"),
-            patch("main.load_config_from_dict") as mock_load_config,
-            patch("main.PipelineBuilder") as mock_builder,
-            patch("main.FileLoader") as mock_loader,
-            patch("main.WorkflowMonitor") as mock_monitor,
+            patch("flipchart_ocr_pipeline.main.load_dotenv"),
+            patch("flipchart_ocr_pipeline.main.load_config_from_dict") as mock_load_config,
+            patch("flipchart_ocr_pipeline.main.PipelineBuilder") as mock_builder,
+            patch("flipchart_ocr_pipeline.main.FileLoader") as mock_loader,
+            patch("flipchart_ocr_pipeline.main.WorkflowMonitor") as mock_monitor,
             patch("os.getenv") as mock_getenv,
             patch("logging.warning") as mock_warning,
-            patch("main._check_input_files") as mock_check_files,
+            patch("flipchart_ocr_pipeline.main._check_input_files") as mock_check_files,
         ):
-
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
             mock_builder_instance.build.return_value = ([], [MagicMock()])
@@ -341,7 +333,7 @@ class TestMainWithConfig:
             # Mock file checking to simulate files existing
             mock_check_files.return_value = (True, [MagicMock()])  # Directory exists, has files
 
-            main.main_with_config(str(config_file), args)
+            main_with_config(str(config_file), args)
 
             # Verify warning was logged
             mock_warning.assert_called()
@@ -377,11 +369,10 @@ class TestMain:
 
         with (
             patch("sys.argv", ["main.py"] + test_args),
-            patch("main.setup_logging"),
-            patch("main.main_with_config") as mock_main_config,
+            patch("flipchart_ocr_pipeline.main.setup_logging"),
+            patch("flipchart_ocr_pipeline.main.main_with_config") as mock_main_config,
         ):
-
-            main.main()
+            main()
 
             # Verify main_with_config was called
             mock_main_config.assert_called_once()
@@ -398,11 +389,10 @@ class TestMain:
         """Test that main() uses default arguments."""
         with (
             patch("sys.argv", ["main.py"]),
-            patch("main.setup_logging"),
-            patch("main.main_with_config") as mock_main_config,
+            patch("flipchart_ocr_pipeline.main.setup_logging"),
+            patch("flipchart_ocr_pipeline.main.main_with_config") as mock_main_config,
         ):
-
-            main.main()
+            main()
 
             mock_main_config.assert_called_once()
 
@@ -414,9 +404,9 @@ class TestMain:
 
     def test_main_calls_setup_logging(self):
         """Test that main() calls setup_logging."""
-        with patch("sys.argv", ["main.py"]), patch("main.setup_logging") as mock_setup, patch("main.main_with_config"):
-
-            main.main()
+        with patch("sys.argv", ["main.py"]), patch("flipchart_ocr_pipeline.main.setup_logging") as mock_setup, patch(
+                "flipchart_ocr_pipeline.main.main_with_config"):
+            main()
 
             # Verify setup_logging was called
             mock_setup.assert_called_once()
@@ -444,13 +434,12 @@ class TestIntegration:
 
         # Mock to prevent actual pipeline execution
         with (
-            patch("main.load_dotenv"),
-            patch("main.FileLoader") as mock_loader,
-            patch("main.WorkflowMonitor") as mock_monitor,
-            patch("main.PipelineBuilder") as mock_builder,
-            patch("main._check_input_files") as mock_check_files,
+            patch("flipchart_ocr_pipeline.main.load_dotenv"),
+            patch("flipchart_ocr_pipeline.main.FileLoader") as mock_loader,
+            patch("flipchart_ocr_pipeline.main.WorkflowMonitor") as mock_monitor,
+            patch("flipchart_ocr_pipeline.main.PipelineBuilder") as mock_builder,
+            patch("flipchart_ocr_pipeline.main._check_input_files") as mock_check_files,
         ):
-
             mock_builder_instance = MagicMock()
             mock_builder.return_value = mock_builder_instance
 
@@ -469,7 +458,7 @@ class TestIntegration:
             mock_check_files.return_value = (True, [MagicMock()])  # Directory exists, has files
 
             # Should execute without errors
-            main.main_with_config(str(config_file), args)
+            main_with_config(str(config_file), args)
 
             # Verify components were created
             mock_builder.assert_called_once()
@@ -487,13 +476,12 @@ class TestIntegration:
 
     def test_pdf_saved_log_message_appears(self, tmp_path, caplog):
         """Test that 'PDF saved successfully' log message appears when PDF is saved."""
-        import cv2
         import logging
         import numpy as np
-        from tasks.save_pdf import PDFSaveTask
-        from tasks.task_item import FileTask, StatusTask
+        from flipchart_ocr_pipeline.tasks.save_pdf import PDFSaveTask
+        from flipchart_ocr_pipeline.tasks.task_item import FileTask, StatusTask
 
-        # Set caplog to capture from tasks.save_pdf logger
+        # Set caplog to capture from flipchart_ocr_pipeline.tasks.save_pdf logger
         caplog.set_level(logging.INFO, logger="tasks.save_pdf")
 
         # Create a simple test image in memory
@@ -527,11 +515,9 @@ class TestIntegration:
         """Test that all queues are empty after pipeline completes with sample data."""
         import cv2
         import numpy as np
-        import queue
-        import time
-        from pipeline.builder import PipelineBuilder
-        from pipeline.config import load_config_from_dict
-        from pipeline.file_loader import FileLoader
+        from flipchart_ocr_pipeline.pipeline.builder import PipelineBuilder
+        from flipchart_ocr_pipeline.pipeline.config import load_config_from_dict
+        from flipchart_ocr_pipeline.pipeline import FileLoader
 
         # Create sample test images with actual content to detect
         test_images = []
@@ -590,10 +576,10 @@ class TestIntegration:
                 items_in_last_queue.append(queues[-1].get())
 
             # Verify these are the expected sentinel tasks
-            from tasks.task_item import FinalizeTask, StatusTask
+            from flipchart_ocr_pipeline.tasks.task_item import FinalizeTask, StatusTask
 
             assert (
-                len(items_in_last_queue) == 2
+                    len(items_in_last_queue) == 2
             ), f"Expected 2 items (FinalizeTask, StatusTask), got {len(items_in_last_queue)}"
             assert isinstance(items_in_last_queue[0], FinalizeTask), "First item should be FinalizeTask"
             assert isinstance(items_in_last_queue[1], StatusTask), "Second item should be StatusTask"

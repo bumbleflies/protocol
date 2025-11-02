@@ -3,12 +3,11 @@ Tests for PipelineBuilder and configuration system.
 """
 
 import pytest
-from pathlib import Path
 
-from pipeline.config import TaskConfig, PipelineConfig, load_config_from_dict
-from pipeline.builder import PipelineBuilder
-from tasks.task_item import TaskProcessor, FileTask
-from tasks.registry import TaskRegistry
+from flipchart_ocr_pipeline.pipeline.config import TaskConfig, PipelineConfig, load_config_from_dict
+from flipchart_ocr_pipeline.pipeline.builder import PipelineBuilder
+from flipchart_ocr_pipeline.tasks.task_item import TaskProcessor, FileTask
+from flipchart_ocr_pipeline.tasks.registry import TaskRegistry
 
 
 class SimpleTestTask(TaskProcessor):

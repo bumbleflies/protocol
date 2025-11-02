@@ -113,7 +113,7 @@ The codebase was refactored to address SOLID violations:
 
 ### Task Processor Architecture (LSP Fix)
 
-**Base Classes** ([tasks/task_item.py](tasks/task_item.py)):
+**Base Classes** ([tasks/task_item.py](flipchart_ocr_pipeline/tasks/task_item.py)):
 
 ```python
 class TaskProcessor(ABC):
@@ -139,7 +139,7 @@ class FinalizableTaskProcessor(TaskProcessor):
 
 ### Provider Abstraction (DIP Fix)
 
-**Abstract Interfaces** ([tasks/ocr_provider.py](tasks/ocr_provider.py)):
+**Abstract Interfaces** ([tasks/ocr_provider.py](flipchart_ocr_pipeline/tasks/ocr_provider.py)):
 
 ```python
 class AssetUploader(ABC):
@@ -153,7 +153,7 @@ class OCRProvider(ABC):
         pass
 ```
 
-**NVIDIA Implementation** ([tasks/nvidia_ocr_provider.py](tasks/nvidia_ocr_provider.py)):
+**NVIDIA Implementation** ([tasks/nvidia_ocr_provider.py](flipchart_ocr_pipeline/tasks/nvidia_ocr_provider.py)):
 - `NvidiaAssetUploader`: Uploads to NVIDIA NVCF
 - `NvidiaOCRProvider`: Calls NVIDIA OCDRNet API
 
@@ -164,7 +164,7 @@ class OCRProvider(ABC):
 
 ### Task Registry (OCP Fix)
 
-**Registry System** ([tasks/registry.py](tasks/registry.py)):
+**Registry System** ([tasks/registry.py](flipchart_ocr_pipeline/tasks/registry.py)):
 
 ```python
 @TaskRegistry.register("image_optimization")
@@ -179,7 +179,7 @@ class ImageOptimizationTask(TaskProcessor):
 
 ### Configuration & Dependency Injection
 
-**Pipeline Builder** ([pipeline/builder.py](pipeline/builder.py)):
+**Pipeline Builder** ([pipeline/builder.py](flipchart_ocr_pipeline/pipeline/builder.py)):
 
 ```python
 builder = PipelineBuilder(config)
@@ -213,9 +213,9 @@ FileLoader → q_in → Worker(optimize) → q_opt → Worker(upload) → q_uplo
 
 **Components**:
 
-- **FileLoader** ([pipeline/file_loader.py](pipeline/file_loader.py)): Scans input directory and loads files into the first queue. Files are sorted by numeric prefix (e.g., `01.1_file.jpg` → sort key 1.1).
+- **FileLoader** ([pipeline/file_loader.py](flipchart_ocr_pipeline/pipeline/file_loader.py)): Scans input directory and loads files into the first queue. Files are sorted by numeric prefix (e.g., `01.1_file.jpg` → sort key 1.1).
 
-- **Worker** ([pipeline/worker.py](pipeline/worker.py)): Generic threaded worker that:
+- **Worker** ([pipeline/worker.py](flipchart_ocr_pipeline/pipeline/worker.py)): Generic threaded worker that:
   - Takes tasks from `input_q`
   - Calls `processor.process(task)` for FileTask
   - Calls `processor.finalize()` for FinalizeTask (if processor supports it)
@@ -223,22 +223,22 @@ FileLoader → q_in → Worker(optimize) → q_opt → Worker(upload) → q_uplo
   - Tracks current task and completion count
   - Now includes timeout on `stop()` to prevent hangs
 
-- **WorkflowMonitor** ([pipeline/monitor.py](pipeline/monitor.py)): Live monitoring thread that displays pipeline status using Rich library tables. Shows what each worker is processing, queue sizes, and completion counts.
+- **WorkflowMonitor** ([pipeline/monitor.py](flipchart_ocr_pipeline/pipeline/monitor.py)): Live monitoring thread that displays pipeline status using Rich library tables. Shows what each worker is processing, queue sizes, and completion counts.
 
 ### Task Flow
 
 Tasks flow through the pipeline in two forms:
 
-1. **FileTask** ([tasks/task_item.py](tasks/task_item.py)): Carries image data and metadata through pipeline stages. Contains:
+1. **FileTask** ([tasks/task_item.py](flipchart_ocr_pipeline/tasks/task_item.py)): Carries image data and metadata through pipeline stages. Contains:
    - `file_path`: Original file location
    - `sort_key`: Numeric sorting key extracted from filename
    - `img`: OpenCV image array (populated after optimization)
    - `asset_id`: NVIDIA upload asset UUID (populated after upload)
    - `ocr_boxes`: List of OCRBox objects (populated after OCR)
 
-2. **FinalizeTask** ([tasks/task_item.py](tasks/task_item.py)): Sentinel task injected by FileLoader after all files. Worker detects this and calls `finalize()` on processors that support it.
+2. **FinalizeTask** ([tasks/task_item.py](flipchart_ocr_pipeline/tasks/task_item.py)): Sentinel task injected by FileLoader after all files. Worker detects this and calls `finalize()` on processors that support it.
 
-3. **StatusTask** ([tasks/task_item.py](tasks/task_item.py)): Status information task that flows through the entire pipeline. Contains:
+3. **StatusTask** ([tasks/task_item.py](flipchart_ocr_pipeline/tasks/task_item.py)): Status information task that flows through the entire pipeline. Contains:
    - `files_processed`: Count of files processed
    - `output_file`: Optional output file path
    - `messages`: List of status messages to display
@@ -250,24 +250,24 @@ Tasks flow through the pipeline in two forms:
 
 Each processing stage is implemented as a TaskProcessor:
 
-- **ImageOptimizationTask** ([tasks/image_optimization.py](tasks/image_optimization.py)):
+- **ImageOptimizationTask** ([tasks/image_optimization.py](flipchart_ocr_pipeline/tasks/image_optimization.py)):
   - Implements `TaskProcessor.process()`
   - Loads image, applies adaptive thresholding and dilation
   - Crops with padding while avoiding over-cropping (min_crop_ratio=0.8)
 
-- **UploadTask** ([tasks/ocr.py](tasks/ocr.py)):
+- **UploadTask** ([tasks/ocr.py](flipchart_ocr_pipeline/tasks/ocr.py)):
   - Implements `TaskProcessor.process()`
   - Takes `AssetUploader` provider via constructor (dependency injection)
   - Encodes optimized image as JPEG and uploads
   - Stores asset_id in FileTask
 
-- **OCRTask** ([tasks/ocr.py](tasks/ocr.py)):
+- **OCRTask** ([tasks/ocr.py](flipchart_ocr_pipeline/tasks/ocr.py)):
   - Implements `TaskProcessor.process()`
   - Takes `OCRProvider` via constructor (dependency injection)
   - Calls provider's `detect_text()` method
   - Populates ocr_boxes sorted top-down, left-right
 
-- **PDFSaveTask** ([tasks/save_pdf.py](tasks/save_pdf.py)):
+- **PDFSaveTask** ([tasks/save_pdf.py](flipchart_ocr_pipeline/tasks/save_pdf.py)):
   - Implements `FinalizableTaskProcessor.process()` and `finalize()`
   - Accumulates FileTask objects in `process()`
   - Generates PDF in `finalize()` when pipeline completes:
@@ -278,7 +278,7 @@ Each processing stage is implemented as a TaskProcessor:
 
 ### Command-Line Arguments
 
-Defined in [main.py](main.py):
+Defined in [main.py](flipchart_ocr_pipeline/main.py):
 - `-i/--input`: Input directory (default: current directory)
 - `-e/--extension`: File extension to process (default: `.jpg`)
 - `-o/--output`: Output PDF filename (default: `combined-YYYYMMDD-HHMMSS.pdf`)
@@ -287,7 +287,7 @@ Defined in [main.py](main.py):
 
 ### Logging
 
-Dual logging setup ([main.py](main.py)):
+Dual logging setup ([main.py](flipchart_ocr_pipeline/main.py)):
 - DEBUG level logs to `debug.log` file
 - INFO level logs to console
 - All log messages include timestamp, level, and thread name
@@ -303,7 +303,7 @@ FileLoader extracts numeric prefixes from filenames using regex `^(\d+)(?:\.(\d+
 
 ### NVIDIA OCR Integration
 
-OCR process ([tasks/nvidia_ocr_provider.py](tasks/nvidia_ocr_provider.py)):
+OCR process ([tasks/nvidia_ocr_provider.py](flipchart_ocr_pipeline/tasks/nvidia_ocr_provider.py)):
 1. Upload image bytes to NVCF asset storage
 2. POST to `https://ai.api.nvidia.com/v1/cv/nvidia/ocdrnet` with asset_id
 3. Response is ZIP containing `.response` JSON file
@@ -313,7 +313,7 @@ OCR process ([tasks/nvidia_ocr_provider.py](tasks/nvidia_ocr_provider.py)):
 
 ### PDF Annotation
 
-PyPDF2 annotations ([tasks/save_pdf.py](tasks/save_pdf.py)):
+PyPDF2 annotations ([tasks/save_pdf.py](flipchart_ocr_pipeline/tasks/save_pdf.py)):
 - Coordinate system requires Y-axis flip: `yLL = page_height - max(y_coords)`
 - Uses `AnnotationBuilder.text()` to create sticky note annotations
 - Annotations are collapsed by default (`open=False`)
@@ -323,7 +323,7 @@ PyPDF2 annotations ([tasks/save_pdf.py](tasks/save_pdf.py)):
 
 The pipeline uses careful coordination to ensure all tasks are processed before shutdown:
 
-**Queue Draining** ([main.py](main.py)):
+**Queue Draining** ([main.py](flipchart_ocr_pipeline/main.py)):
 - After FileLoader injects all tasks, main thread calls `queue.join()` on each input queue
 - This blocks until all tasks (FileTasks, FinalizeTask, and StatusTask) are fully processed
 - Only after all queues are drained do workers receive the stop signal

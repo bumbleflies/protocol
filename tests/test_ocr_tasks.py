@@ -3,16 +3,15 @@
 import logging
 from pathlib import Path
 from unittest.mock import Mock
-from uuid import UUID, uuid4
+from uuid import uuid4
 
-import cv2
 import numpy as np
 import pytest
 
-from tasks.ocr import UploadTask, OCRTask
-from tasks.task_item import FileTask, OCRBox, StatusTask
-from tasks.ocr_provider import AssetUploader, OCRProvider
-from tasks.exceptions import OCRException
+from flipchart_ocr_pipeline.tasks.ocr import UploadTask, OCRTask
+from flipchart_ocr_pipeline.tasks.task_item import FileTask, OCRBox, StatusTask
+from flipchart_ocr_pipeline.tasks.ocr_provider import AssetUploader, OCRProvider
+from flipchart_ocr_pipeline.tasks.exceptions import OCRException
 
 
 class TestUploadTask:

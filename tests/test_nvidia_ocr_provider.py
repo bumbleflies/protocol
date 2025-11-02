@@ -5,16 +5,15 @@ import logging
 import tempfile
 import zipfile
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from uuid import UUID, uuid4
 
 import numpy as np
 import pytest
 import requests
 
-from tasks.nvidia_ocr_provider import NvidiaAssetUploader, NvidiaOCRProvider
-from tasks.task_item import OCRBox
-from tasks.exceptions import UploadException, OCRException
+from flipchart_ocr_pipeline.tasks.nvidia_ocr_provider import NvidiaAssetUploader, NvidiaOCRProvider
+from flipchart_ocr_pipeline.tasks.exceptions import UploadException, OCRException
 
 
 class TestNvidiaAssetUploader:

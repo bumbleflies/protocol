@@ -3,8 +3,8 @@ import threading
 from queue import Queue, Empty
 from typing import Optional, Union
 
-from tasks import FileTask, FinalizeTask, StatusTask
-from tasks.task_item import TaskProcessor, FinalizableTaskProcessor
+from flipchart_ocr_pipeline.tasks import FileTask, FinalizeTask, StatusTask
+from flipchart_ocr_pipeline.tasks.task_item import TaskProcessor, FinalizableTaskProcessor
 
 logger = logging.getLogger(__name__)
 

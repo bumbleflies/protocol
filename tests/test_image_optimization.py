@@ -7,8 +7,8 @@ import cv2
 import numpy as np
 import pytest
 
-from tasks.image_optimization import ImageOptimizationTask
-from tasks.task_item import FileTask, StatusTask
+from flipchart_ocr_pipeline.tasks.image_optimization import ImageOptimizationTask
+from flipchart_ocr_pipeline.tasks.task_item import FileTask, StatusTask
 
 
 class TestImageOptimizationTask:
@@ -54,7 +54,7 @@ class TestImageOptimizationTask:
         processor = ImageOptimizationTask()
         file_task = FileTask(file_path=Path("/nonexistent/image.jpg"), sort_key=1.0)
 
-        from tasks.exceptions import ImageProcessingException
+        from flipchart_ocr_pipeline.tasks.exceptions import ImageProcessingException
 
         with pytest.raises(ImageProcessingException, match="Could not read image"):
             processor.process(file_task)
@@ -516,7 +516,6 @@ class TestImageOptimizationTask:
 
     def test_detect_rotation_angle_returns_none_for_no_lines(self, tmpdir):
         """Test rotation angle detection returns None when no lines detected."""
-        import cv2
         import numpy as np
 
         # Create solid color image with no lines
@@ -530,7 +529,6 @@ class TestImageOptimizationTask:
 
     def test_rotate_image_expands_canvas(self, tmpdir):
         """Test that image rotation expands canvas to fit rotated content."""
-        import cv2
         import numpy as np
 
         # Create a small test image
@@ -580,7 +578,6 @@ class TestImageOptimizationTask:
 
     def test_detect_rotation_angle_no_lines(self, mocker):
         """Test rotation angle detection when HoughLinesP returns None (no lines)."""
-        import cv2
         import numpy as np
 
         # Create a simple test image
@@ -597,7 +594,6 @@ class TestImageOptimizationTask:
 
     def test_detect_rotation_angle_empty_list(self, mocker):
         """Test rotation angle detection when HoughLinesP returns empty list."""
-        import cv2
         import numpy as np
 
         # Create a simple test image
@@ -617,7 +613,7 @@ class TestImageOptimizationTask:
         import cv2
         import numpy as np
         from pathlib import Path
-        from tasks import FileTask
+        from flipchart_ocr_pipeline.tasks import FileTask
 
         # Create a tilted image with clear horizontal lines
         img = np.ones((400, 600, 3), dtype=np.uint8) * 255
@@ -648,7 +644,7 @@ class TestImageOptimizationTask:
         import cv2
         import numpy as np
         from pathlib import Path
-        from tasks import FileTask
+        from flipchart_ocr_pipeline.tasks import FileTask
 
         # Create image with bright white paper on dark background
         img = np.ones((500, 700, 3), dtype=np.uint8) * 30  # Very dark background

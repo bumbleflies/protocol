@@ -3,13 +3,10 @@
 import logging
 import queue
 import time
-from unittest.mock import Mock, patch
 
-import pytest
-
-from pipeline.monitor import WorkflowMonitor
-from pipeline.worker import Worker
-from tasks.task_item import TaskProcessor, FileTask
+from flipchart_ocr_pipeline.pipeline import WorkflowMonitor
+from flipchart_ocr_pipeline.pipeline import Worker
+from flipchart_ocr_pipeline.tasks.task_item import TaskProcessor, FileTask
 from pathlib import Path
 
 

@@ -2,16 +2,13 @@
 
 import logging
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
 import tempfile
 
-import cv2
 import numpy as np
 import pytest
-from PIL import Image
 
-from tasks.save_pdf import PDFSaveTask
-from tasks.task_item import FileTask, OCRBox, StatusTask
+from flipchart_ocr_pipeline.tasks.save_pdf import PDFSaveTask
+from flipchart_ocr_pipeline.tasks.task_item import FileTask, OCRBox
 
 
 class TestPDFSaveTask:

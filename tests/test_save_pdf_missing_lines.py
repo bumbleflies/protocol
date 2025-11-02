@@ -3,12 +3,12 @@
 import logging
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 import numpy as np
 
-from tasks.save_pdf import PDFSaveTask
-from tasks.task_item import FileTask, OCRBox
+from flipchart_ocr_pipeline.tasks.save_pdf import PDFSaveTask
+from flipchart_ocr_pipeline.tasks.task_item import FileTask, OCRBox
 
 
 def test_finalize_with_task_missing_image_in_loop(caplog):
@@ -133,7 +133,7 @@ def test_annotation_exception_handling(caplog):
         processor.process(task)
 
         # Mock Text to raise an exception during annotation creation
-        with patch("tasks.save_pdf.Text", side_effect=Exception("Annotation error")):
+        with patch("flipchart_ocr_pipeline.tasks.save_pdf.Text", side_effect=Exception("Annotation error")):
             with caplog.at_level(logging.WARNING):
                 processor.finalize()
 

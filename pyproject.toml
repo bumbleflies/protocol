@@ -1,82 +1,57 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [project]
-name = "flipchart-ocr-pipeline"
+name = "flipchart_ocr_pipeline"
 version = "1.0.0"
 description = "Flipchart OCR pipeline with SOLID principles"
 readme = "README.md"
 authors = [
-    {name = "bumbleflies UG", email = "info@bumbleflies.com"}
+    { name = "bumbleflies UG", email = "info@bumbleflies.com" }
 ]
 license = "MIT"
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Scientific/Engineering :: Image Recognition",
-]
-requires-python = ">=3.11"
+requires-python = ">=3.11,<=3.14"
+
 dependencies = [
-    "numpy>=2.2.0,<2.3.0",
-    "opencv-python>=4.12.0",
-    "opencv-python-headless>=4.12.0",
-    "Pillow>=12.0.0",
-    "pypdf>=6.1.3",
-    "requests>=2.32.5",
-    "rich>=14.1.0",
-    "python-dotenv>=1.0.1",
-    "PyYAML>=6.0.2",
+    "numpy>=2.2.0,<3.0.0",
+    "opencv-python>=4.12.0,<5.0.0",
+    "opencv-python-headless>=4.12.0,<5.0.0",
+    "Pillow>=12.0.0,<13.0.0",
+    "pypdf>=6.1.3,<7.0.0",
+    "requests>=2.32.5,<3.0.0",
+    "rich>=14.1.0,<15.0.0",
+    "python-dotenv>=1.0.1,<2.0.0",
+    "PyYAML>=6.0.2,<7.0.0"
 ]
 
 [project.optional-dependencies]
-test = [
+dev = [
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
     "pytest-mock>=3.14.0",
     "pytest-asyncio>=1.2.0",
-]
-dev = [
     "flake8>=7.1.0",
     "black>=25.9.0",
     "mypy>=1.18.2",
     "pre-commit>=4.0.0",
     "types-requests>=2.32.4",
     "types-PyYAML>=6.0.12",
-    "python-semantic-release>=9.15.2",
+    "python-semantic-release>=9.15.2"
 ]
 
 [project.urls]
-Homepage = "https://github.com/bumbleflies/protocol"
-Documentation = "https://github.com/bumbleflies/protocol/blob/main/CLAUDE.md"
-Repository = "https://github.com/bumbleflies/protocol"
-Issues = "https://github.com/bumbleflies/protocol/issues"
+homepage = "https://github.com/bumbleflies/protocol"
+repository = "https://github.com/bumbleflies/protocol"
+documentation = "https://github.com/bumbleflies/protocol/blob/main/README.md"
+issues = "https://github.com/bumbleflies/protocol/issues"
 
-[tool.setuptools.packages.find]
-include = ["tasks*", "pipeline*"]
-exclude = ["tests*", "samples*"]
+[project.scripts]
+main = "flipchart_ocr_pipeline:main"
 
 [tool.black]
 line-length = 120
-target-version = ['py311', 'py312', 'py313']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
+target-version = ["py311", "py312", "py313"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -86,10 +61,6 @@ disallow_untyped_defs = false
 ignore_missing_imports = true
 no_implicit_optional = true
 show_error_codes = true
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-ignore_errors = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -101,8 +72,7 @@ addopts = [
     "-v",
     "--strict-markers",
     "--tb=short",
-    "--cov=tasks",
-    "--cov=pipeline",
+    "--cov=flipchart_ocr_pipeline",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
@@ -113,41 +83,13 @@ markers = [
     "unit: marks tests as unit tests",
 ]
 
-[tool.coverage.run]
-relative_files = true
-source = ["tasks", "pipeline"]
-omit = [
-    "*/tests/*",
-    "*/test_*.py",
-    "*/__init__.py",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if __name__ == .__main__.:",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if TYPE_CHECKING:",
-    "@abstractmethod",
-]
-precision = 2
-show_missing = true
-skip_covered = false
-
-[tool.coverage.html]
-directory = "htmlcov"
-
 [tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
-version_variables = []
-build_command = "python -m build"
+version_toml = "pyproject.toml:tool.poetry.version"
+build_command = "poetry build"
 commit_message = "chore(release): {version}"
 tag_format = "v{version}"
-major_on_zero = true
 allow_zero_version = true
-no_git_verify = false
+major_on_zero = true
 
 [tool.semantic_release.branches.main]
 match = "(main|master)"
@@ -161,44 +103,10 @@ exclude_commit_patterns = [
     "^\\[skip ci\\]",
 ]
 
-[tool.semantic_release.changelog.default_templates]
-changelog_file = "CHANGELOG.md"
-
-[tool.semantic_release.changelog.environment]
-block_start_string = "{%"
-block_end_string = "%}"
-variable_start_string = "{{"
-variable_end_string = "}}"
-comment_start_string = "{#"
-comment_end_string = "#}"
-trim_blocks = false
-lstrip_blocks = false
-newline_sequence = "\n"
-keep_trailing_newline = false
-extensions = []
-autoescape = true
-
 [tool.semantic_release.commit_parser_options]
 allowed_tags = [
-    "build",
-    "chore",
-    "ci",
-    "docs",
-    "feat",
-    "fix",
-    "perf",
-    "style",
-    "refactor",
-    "test",
+    "build", "chore", "ci", "docs", "feat", "fix",
+    "perf", "style", "refactor", "test",
 ]
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
-
-[tool.semantic_release.remote]
-name = "origin"
-type = "github"
-ignore_token_for_push = false
-
-[tool.semantic_release.publish]
-dist_glob_patterns = ["dist/*"]
-upload_to_vcs_release = true

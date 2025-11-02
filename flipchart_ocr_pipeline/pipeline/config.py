@@ -25,7 +25,7 @@ class PipelineConfig:
     """
 
     tasks: List[TaskConfig]
-    input_dir: str = "."
+    input_dir: str = ""
     extension: str = ".jpg"
     output_file: str = "combined.pdf"
     enable_ocr: bool = True
@@ -61,7 +61,7 @@ def load_config_from_dict(data: Dict[str, Any]) -> PipelineConfig:
 
     return PipelineConfig(
         tasks=tasks,
-        input_dir=data.get("input_dir", "."),
+        input_dir=data.get("input_dir", ""),
         extension=data.get("extension", ".jpg"),
         output_file=data.get("output_file", "combined.pdf"),
         enable_ocr=data.get("enable_ocr", True),

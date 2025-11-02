@@ -2,11 +2,10 @@
 Tests for TaskProcessor base classes and LSP compliance.
 """
 
-import pytest
 import numpy as np
 from pathlib import Path
 
-from tasks.task_item import TaskProcessor, FinalizableTaskProcessor, FileTask, OCRBox
+from flipchart_ocr_pipeline.tasks.task_item import TaskProcessor, FinalizableTaskProcessor, FileTask, OCRBox
 
 
 class SimpleTaskProcessor(TaskProcessor):

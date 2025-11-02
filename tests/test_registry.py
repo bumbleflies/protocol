@@ -4,8 +4,8 @@ Tests for TaskRegistry (OCP compliance).
 
 import pytest
 
-from tasks.registry import TaskRegistry
-from tasks.task_item import TaskProcessor, FileTask
+from flipchart_ocr_pipeline.tasks.registry import TaskRegistry
+from flipchart_ocr_pipeline.tasks.task_item import TaskProcessor, FileTask
 from pathlib import Path
 
 

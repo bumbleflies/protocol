@@ -2,13 +2,12 @@
 Tests for Worker and its interaction with TaskProcessor.
 """
 
-import pytest
 import queue
 import time
 from pathlib import Path
 
-from pipeline.worker import Worker
-from tasks.task_item import TaskProcessor, FinalizableTaskProcessor, FileTask, FinalizeTask, StatusTask
+from flipchart_ocr_pipeline.pipeline import Worker
+from flipchart_ocr_pipeline.tasks.task_item import TaskProcessor, FinalizableTaskProcessor, FileTask, FinalizeTask, StatusTask
 
 
 class CountingProcessor(TaskProcessor):
@@ -219,7 +218,7 @@ class TestWorkerWithTaskProcessor:
         """Test that worker logs StatusTask messages when it's the last worker."""
         import logging
 
-        caplog.set_level(logging.INFO, logger="pipeline.worker")
+        caplog.set_level(logging.INFO, logger="flipchart_ocr_pipeline.pipeline.worker")
 
         input_q = queue.Queue()
         processor = CountingProcessor()

@@ -2,13 +2,12 @@
 Tests for OCR provider abstraction (DIP compliance).
 """
 
-import pytest
 import uuid
 import numpy as np
 from typing import List
 
-from tasks.ocr_provider import AssetUploader, OCRProvider
-from tasks.task_item import OCRBox
+from flipchart_ocr_pipeline.tasks.ocr_provider import AssetUploader, OCRProvider
+from flipchart_ocr_pipeline.tasks.task_item import OCRBox
 
 
 class MockAssetUploader(AssetUploader):

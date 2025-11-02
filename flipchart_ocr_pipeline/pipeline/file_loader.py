@@ -2,7 +2,7 @@ import queue
 import re
 from pathlib import Path
 
-from tasks import FileTask, FinalizeTask, StatusTask
+from flipchart_ocr_pipeline.tasks import FileTask, FinalizeTask, StatusTask
 
 
 class FileLoader:

@@ -8,11 +8,11 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-from pipeline import FileLoader
-from pipeline.monitor import WorkflowMonitor
-from pipeline.builder import PipelineBuilder
-from pipeline.config import load_config_from_dict
-from tasks.nvidia_ocr_provider import NvidiaAssetUploader, NvidiaOCRProvider
+from flipchart_ocr_pipeline.pipeline import FileLoader
+from flipchart_ocr_pipeline.pipeline.monitor import WorkflowMonitor
+from flipchart_ocr_pipeline.pipeline.builder import PipelineBuilder
+from flipchart_ocr_pipeline.pipeline.config import load_config_from_dict
+from flipchart_ocr_pipeline.tasks.nvidia_ocr_provider import NvidiaAssetUploader, NvidiaOCRProvider
 
 
 def _check_input_files(input_dir: str, extension: str) -> tuple[bool, list]:
@@ -106,7 +106,7 @@ def _run_pipeline(builder: PipelineBuilder, config, files: list) -> None:
 
     # Process final output queue to log StatusTask (AFTER monitor stops)
     final_queue = queues[-1]
-    from tasks import StatusTask
+    from flipchart_ocr_pipeline.tasks import StatusTask
 
     while not final_queue.empty():
         try:

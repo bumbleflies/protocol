@@ -4,9 +4,9 @@ import queue
 from queue import Queue
 from typing import Dict, Any, List, Tuple, Union
 
-from tasks import FileTask, FinalizeTask, StatusTask
-from tasks.registry import TaskRegistry
-from tasks.task_item import TaskProcessor
+from flipchart_ocr_pipeline.tasks import FileTask, FinalizeTask, StatusTask
+from flipchart_ocr_pipeline.tasks.registry import TaskRegistry
+from flipchart_ocr_pipeline.tasks.task_item import TaskProcessor
 from .config import PipelineConfig
 from .worker import Worker
 
