@@ -93,6 +93,9 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
 ]
+[tool.coverage.run]
+relative_files = true
+source = ["flipchart_ocr_pipeline"]
 
 [tool.semantic_release]
 version_toml = "pyproject.toml:tool.poetry.version"
