@@ -892,6 +892,7 @@ description = "Wrapper package for OpenCV python bindings."
 optional = false
 python-versions = ">=3.6"
 groups = ["main"]
+markers = "sys_platform != \"win32\""
 files = [
     {file = "opencv-python-headless-4.12.0.88.tar.gz", hash = "sha256:cfdc017ddf2e59b6c2f53bc12d74b6b0be7ded4ec59083ea70763921af2b6c09"},
     {file = "opencv_python_headless-4.12.0.88-cp37-abi3-macosx_13_0_arm64.whl", hash = "sha256:1e58d664809b3350c1123484dd441e1667cd7bed3086db1b9ea1b6f6cb20b50e"},
@@ -1870,4 +1871,4 @@ dev = ["pytest", "setuptools"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<=3.14"
-content-hash = "eedd0db411e9e6f4deba0f6deac94eb07f7265851ec5a49ef5e854c6b9942676"
+content-hash = "0f21591a8d1d6a52c52218c1aff681ab0619e3cddc386b0386ed64a98fab0bc9"
