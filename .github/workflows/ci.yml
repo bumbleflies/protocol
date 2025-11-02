@@ -18,13 +18,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
-        python-version: [ '3.13' ]  # Latest stable by default
+        python-version: [ '3.14' ]
         include:
-          # Test additional versions on Ubuntu only
-          - os: ubuntu-latest
-            python-version: '3.11'
           - os: ubuntu-latest
             python-version: '3.12'
+          - os: ubuntu-latest
+            python-version: '3.13'
 
     steps:
       - name: Checkout code
@@ -34,16 +33,17 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          cache: 'poetry'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[test,dev]"
+          pip install poetry
+          poetry install --no-root
 
       - name: Run tests with pytest
         run: |
-          pytest tests/ -v --tb=short --junitxml=test-results-${{ matrix.os }}-${{ matrix.python-version }}.xml
+          poetry run pytest tests/ -v --tb=short --junitxml=test-results-${{ matrix.os }}-${{ matrix.python-version }}.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -54,7 +54,7 @@ jobs:
 
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always() && runner.os == 'Linux' && matrix.python-version == '3.13'
+        if: always() && runner.os == 'Linux' && matrix.python-version == '3.14'
         with:
           files: test-results-*.xml
           check_name: Test Results (Python ${{ matrix.python-version }})
@@ -73,17 +73,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
-          cache: 'pip'
+          python-version: '3.14'
+          cache: 'poetry'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[test,dev]"
+          pip install poetry
+          poetry install --no-root
 
       - name: Run tests with coverage
         run: |
-          pytest tests/ --cov=tasks --cov=pipeline --cov-report=xml --cov-report=html --cov-report=term --cov-report=json
+          poetry run pytest tests/ --cov=tasks --cov=pipeline --cov-report=xml --cov-report=html --cov-report=term --cov-report=json
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -115,7 +115,7 @@ jobs:
 
       - name: Check coverage threshold
         run: |
-          coverage report --fail-under=45
+          poetry run coverage report --fail-under=45
 
   lint:
     name: Code Quality & Linting
@@ -128,26 +128,26 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
-          cache: 'pip'
+          python-version: '3.14'
+          cache: 'poetry'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[test,dev]"
+          pip install poetry
+          poetry install --no-root
 
       - name: Run flake8
         run: |
-          flake8 tasks/ pipeline/ --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 tasks/ pipeline/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+          poetry run flake8 tasks/ pipeline/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          poetry run flake8 tasks/ pipeline/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
 
       - name: Run black (check only)
         run: |
-          black --check tasks/ pipeline/ tests/
+          poetry run black --check tasks/ pipeline/ tests/
 
       - name: Run mypy type checking
         run: |
-          mypy tasks/ pipeline/ --ignore-missing-imports --no-strict-optional
+          poetry run mypy tasks/ pipeline/ --ignore-missing-imports --no-strict-optional
 
   security:
     name: Security Scan
@@ -160,21 +160,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install safety bandit
+          pip install poetry
+          poetry add --dev safety bandit
 
       - name: Run safety check (dependency vulnerabilities)
         run: |
-          safety check --json || true
+          poetry run safety check --json || true
         continue-on-error: true
 
       - name: Run bandit (security issues)
         run: |
-          bandit -r tasks/ pipeline/ -f json -o bandit-report.json || true
+          poetry run bandit -r tasks/ pipeline/ -f json -o bandit-report.json || true
         continue-on-error: true
 
       - name: Upload security reports
@@ -182,8 +182,7 @@ jobs:
         if: always()
         with:
           name: security-reports
-          path: |
-            bandit-report.json
+          path: bandit-report.json
 
   test-report:
     name: Test Report Summary

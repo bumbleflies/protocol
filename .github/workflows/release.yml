@@ -1,12 +1,9 @@
 name: Release
 
-# NOTE: This workflow is now triggered by tags created by semantic-release workflow
-# The semantic-release.yml workflow on main branch creates tags automatically
-# This workflow handles additional build and publish steps for those tags
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v2.1.3, etc.
+      - 'v*.*.*'  # Trigger on version tags like v1.0.0
 
 permissions:
   contents: write
@@ -23,22 +20,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
+          python-version: '3.14'
+          cache: 'poetry'
+
+      - name: Install Poetry
+        run: pip install poetry
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r test_requirements.txt
+        run: poetry install
 
       - name: Run tests
-        run: |
-          pytest tests/ -v --cov=tasks --cov=pipeline --cov-report=xml
+        run: poetry run pytest tests/ -v --cov=tasks --cov=pipeline --cov-report=xml
 
       - name: Check coverage threshold
-        run: |
-          coverage report --fail-under=45
+        run: poetry run coverage report --fail-under=45
 
   build:
     name: Build Distribution
@@ -52,45 +47,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.14'
 
-      - name: Install build tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install build wheel setuptools
+      - name: Install Poetry
+        run: pip install poetry
 
-      - name: Create distribution package
+      - name: Build package with Poetry
         run: |
-          # Create a simple setup.py for distribution
-          cat > setup.py << EOF
-          from setuptools import setup, find_packages
-          
-          setup(
-              name="flipchart-ocr-pipeline",
-              version="${{ github.ref_name }}".lstrip('v'),
-              packages=find_packages(),
-              install_requires=[
-                  line.strip()
-                  for line in open('requirements.txt').readlines()
-                  if line.strip() and not line.startswith('#')
-              ],
-              python_requires='>=3.11',
-              author="bumbleflies UG",
-              description="Flipchart OCR pipeline with SOLID principles",
-              long_description=open('README.md').read(),
-              long_description_content_type="text/markdown",
-              url="https://github.com/bumbleflies/protocol",
-              classifiers=[
-                  "Development Status :: 4 - Beta",
-                  "Intended Audience :: Developers",
-                  "License :: OSI Approved :: MIT License",
-                  "Programming Language :: Python :: 3.11",
-                  "Programming Language :: Python :: 3.12",
-                  "Programming Language :: Python :: 3.13",
-              ],
-          )
-          EOF
-          python -m build
+          poetry build
 
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4
@@ -118,86 +82,39 @@ jobs:
       - name: Generate changelog
         id: changelog
         run: |
-          # Get the previous tag
           PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
-          
           if [ -z "$PREVIOUS_TAG" ]; then
-            echo "First release - no changelog"
             echo "changelog=First release of the flipchart OCR pipeline." >> $GITHUB_OUTPUT
           else
-            echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
             CHANGELOG=$(git log $PREVIOUS_TAG..${{ github.ref_name }} --pretty=format:"- %s (%h)" --no-merges)
             echo "changelog<<EOF" >> $GITHUB_OUTPUT
             echo "$CHANGELOG" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ github.ref_name }}
           body: |
-            ## What's Changed
-            
+            ## Changelog
             ${{ steps.changelog.outputs.changelog }}
             
             ## Installation
-            
             ```bash
-            # Clone the repository
-            git clone https://github.com/bumbleflies/protocol.git
-            cd protocol
-            
-            # Install dependencies
-            pip install -r requirements.txt
-            
-            # Setup environment
-            cp .env.example .env
-            # Edit .env with your NVIDIA_API_KEY
-            
-            # Run the pipeline
-            python main.py --config pipeline_config.yaml
+            pip install flipchart-ocr-pipeline
             ```
             
-            ## New Features in This Release
-            
-            - ✅ SOLID principles refactoring
-            - ✅ Configuration-based pipeline with YAML
-            - ✅ Dependency injection for OCR providers
-            - ✅ Comprehensive test suite (40 tests, 50% coverage)
-            - ✅ Platform compatibility fixes
-            
-            ## Documentation
-            
-            - [REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md)
-            - [CLAUDE.md](./CLAUDE.md)
-            - [TEST_RESULTS.md](./TEST_RESULTS.md)
-          files: |
-            dist/*
+            ## New Features
+            - ✅ SOLID refactoring
+            - ✅ YAML configuration
+            - ✅ Dependency injection for OCR
+            - ✅ Test suite and platform fixes
+          files: dist/*
           draft: false
           prerelease: false
           generate_release_notes: true
 
   publish-pypi:
     name: Publish to PyPI
-    needs: create-release
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-
-    environment:
-      name: pypi
-      url: https://pypi.org/project/flipchart-ocr-pipeline/
-
-    steps:
-      - name: Download distribution artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          skip-existing: true
-        continue-on-error: true  # Don't fail if package already exists
+    needs: crea
