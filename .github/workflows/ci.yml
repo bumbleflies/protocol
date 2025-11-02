@@ -17,12 +17,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ ubuntu-latest ]
         python-version: [ '3.14' ]
         include:
           - os: ubuntu-latest
             python-version: '3.12'
           - os: ubuntu-latest
+            python-version: '3.13'
+          - os: windows-latest
+            python-version: '3.13'
+          - os: macos-latest
             python-version: '3.13'
 
     steps:
@@ -37,12 +41,16 @@ jobs:
       - name: Install poetry
         uses: abatilo/actions-poetry@v4
 
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+
       - name: Install dependencies
         run: poetry install --no-root
 
       - name: Run tests with pytest
-        run: |
-          poetry run pytest tests/ -v --tb=short --junitxml=test-results-${{ matrix.os }}-${{ matrix.python-version }}.xml
+        run: poetry run pytest tests/ -v --tb=short --junitxml=test-results-${{ matrix.os }}-${{ matrix.python-version }}.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
