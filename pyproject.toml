@@ -106,7 +106,7 @@ show_missing = true
 skip_covered = false
 
 [tool.semantic_release]
-version_toml = "pyproject.toml:tool.poetry.version"
+version_toml = ["pyproject.toml:tool.poetry.version"]
 build_command = "poetry build"
 commit_message = "chore(release): {version}"
 tag_format = "v{version}"
