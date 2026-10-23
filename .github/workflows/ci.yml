@@ -97,7 +97,7 @@ jobs:
         run: poetry run pytest tests/ --cov=flipchart_ocr_pipeline --cov-report=xml --cov-report=html --cov-report=term --junitxml=junit.xml -o junit_family=legacy
 
       - name: Coverage comment on PR
-        uses: py-cov-action/python-coverage-comment-action@v3
+        uses: py-cov-action/python-coverage-comment-action@v4.5
         if: github.event_name == 'pull_request'
         with:
           GITHUB_TOKEN: ${{ github.token }}
